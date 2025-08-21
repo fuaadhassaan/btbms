@@ -1,0 +1,137 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  background-color: black;
+  color: white;
+  height: 100%;
+}
+
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+.nav-panel {
+  width: 250px;
+  background-color: black;
+  border-right: 2px solid red;
+  padding: 20px;
+}
+
+.main-section {
+  flex: 1;
+  background-color: black;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+.search-form form {
+  display: flex;
+  flex-direction: column;
+  max-width: 500px;
+}
+
+.search-form form label,
+.search-form form select,
+.search-form form input {
+  margin-bottom: 10px;
+  font-size: 1em;
+}
+
+.search-form form button {
+  padding: 10px;
+  background: red;
+  color: white;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.results table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #222;
+  color: white;
+}
+
+.results th, .results td {
+  border: 1px solid red;
+  padding: 10px;
+  text-align: center;
+}
+
+.results th {
+  background-color: #111;
+}
+
+.seat-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 20px;
+}
+
+.seat-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.seat {
+  width: 40px;
+  height: 40px;
+  border-radius: 5px;
+  background: white;
+  color: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.seat.selected {
+  background: green;
+  color: white;
+}
+
+.seat.booked {
+  background: grey;
+  color: white;
+  cursor: not-allowed;
+}
+
+.seat.gap {
+  width: 40px;
+  height: 40px;
+  visibility: hidden;
+}
+
+#ticketForm input,
+#ticketForm select {
+  width: 100%;
+  max-width: 500px;
+  padding: 10px;
+  font-size: 1em;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  border: none;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.legend .seat {
+  width: 20px;
+  height: 20px;
+}
+.seat.booked {
+  background: grey;
+  color: white;
+  cursor: not-allowed;
+}

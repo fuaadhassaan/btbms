@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTBMS - Home</title>
+  <link rel="stylesheet" href="css/index.css" />
+</head>
+<body>
+    <!-- Main Content Area -->
+    <main class="main-section">
+      <section class="banner" id="home">
+        <div class="banner-content">
+          <h1>Bus Ticket Booking & Management System</h1>
+          <div class="btbms-subtitle">BTBMS</div>
+          <p>An Easy, reliable and fast ticket booking service with ticket management features, LIKE NEVER BEFORE!</p>
+          <button onclick="scrollToExplore()">Explore The Unknown</button>
+        </div>
+      </section>
+
+      <section class="explore" id="explore">
+        <h2>Select Your Access</h2>
+        <div class="access-buttons">
+          <a href="admin.html">Admin</a>
+          <a href="cmanager.html">Counter Manager</a>
+          <a href="tmanager.html">Transport Manager</a>
+          <a href="ticket-booking.html">Passenger's Ticket Booking System</a>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+<footer>
+  All Rights Reserved by Team BTBMS© |
+  For enquiries, email: <a href="mailto:support.btbms@gmail.com">support.btbms@gmail.com</a>
+</footer>
+
+  <script>
+    function scrollToExplore() {
+      document.getElementById("explore").scrollIntoView({ behavior: "smooth" });
+    }
+  </script>
+</body>
+</html>

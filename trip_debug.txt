@@ -1,0 +1,12 @@
+TripID: [TR5]
+Seats: Array
+(
+    [0] => C1
+)
+
+TripID: [TR6]
+Seats: Array
+(
+    [0] => A1
+)
+

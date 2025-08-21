@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+<div id="login-section" class="centered">
+  <h2>Admin Login</h2>
+  <form id="adminLoginForm">
+    <label for="username">User Name</label><br/>
+    <input type="text" name="username" placeholder="User Name" required><br/>
+    <label for="userid">User ID</label><br/>
+    <input type="text" name="userid" placeholder="User ID" required><br/>
+    <label for="password">Password</label><br/>
+    <input type="password" name="password" placeholder="Password" required><br/>
+    <button type="submit" id="login" class="btn-red">Login</button>
+    <button type="button" id="loginHomeBtn" class="btn-red">Home</button>
+  </form>
+</div>
+
+<div id="dashboard-section" style="display:none;">
+  <div class="sidebar">
+    <button id="home-btn" class="sidebar-top-btn">Home</button>
+    <button id="return-btn" class="sidebar-top-btn">Return</button>
+    <button id="logout-btn" class="sidebar-top-btn logout-btn">Logout</button>
+    <button onclick="showSection('trip')">Manage Trip</button>
+    <button onclick="showSection('ticket')">Manage Ticket</button>
+    <button onclick="showSection('stats')">Overview Company Stats</button>
+    <button onclick="showSection('requests')">Handle Requests</button>
+  </div>
+  <div class="main-content">
+    
+    <!-- Manage Trip -->
+    <div class="content-section" id="trip">
+      <h2>Manage Trip</h2>
+      <div class="subsection-btns">
+        <button onclick="loadSub('trip', 'overview')">Overview Trip Details</button>
+        <button onclick="loadSub('trip', 'create')">Create</button>
+        <button onclick="loadSub('trip', 'update')">Update</button>
+        <button onclick="loadSub('trip', 'delete')">Delete</button>
+      </div>
+      <div id="trip-content"></div>
+    </div>
+    <!-- Manage Ticket -->
+    <div class="content-section" id="ticket">
+      <h2>Manage Ticket</h2>
+      <div class="subsection-btns">
+        <button onclick="loadSub('ticket', 'overview')">Overview Ticket Details</button>
+        <button onclick="loadSub('ticket', 'create')">Create Ticket</button>
+        <button onclick="loadSub('ticket', 'update')">Update Ticket</button>
+        <button onclick="loadSub('ticket', 'delete')">Delete Ticket</button>
+      </div>
+      <div id="ticket-content"></div>
+    </div>
+    <!-- Overview Company Stats -->
+    <div class="content-section" id="stats">
+      <h2>Overview Company Stats</h2>
+      <div class="subsection-btns">
+        <button onclick="loadCompanyStats('daily')" id="stat-btn-daily" class="stat-btn-active">Daily</button>
+        <button onclick="loadCompanyStats('monthly')" id="stat-btn-monthly">Monthly</button>
+        <button onclick="loadCompanyStats('yearly')" id="stat-btn-yearly">Yearly</button>
+      </div>
+      <div id="stats-content"></div>
+    </div>
+    <!-- Handle Requests -->
+    <div class="content-section" id="requests">
+      <h2>Handle Requests</h2>
+      <div id="requests-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- Login page buttons ---
+document.getElementById('loginHomeBtn').onclick = () => location.href = 'index.html';
+
+// --- Dashboard sidebar buttons ---
+document.getElementById('home-btn').onclick   = () => location.href = 'index.html';
+document.getElementById('return-btn').onclick = () => history.back();
+document.getElementById('logout-btn').onclick = function() {
+  fetch('admin.php', { method: 'POST', body: new URLSearchParams({ action: 'logout' }) })
+    .then(() => { window.location.reload(); });
+};
+
+function showSection(id) {
+  document.querySelectorAll('.content-section').forEach(el => el.style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+  if (id === 'requests') loadRequests();
+}
+function loadSub(section, action) {
+  const container = document.getElementById(section + '-content');
+  fetch('admin.php', {
+    method: 'POST',
+    body: new URLSearchParams({ action: section + '_' + action })
+  })
+  .then(res => res.text())
+  .then(html => { container.innerHTML = html; });
+}
+function loadRequests() {
+  fetch('admin.php', {
+    method: 'POST',
+    body: new URLSearchParams({ action: 'requests_all' })
+  })
+  .then(res => res.text())
+  .then(html => { document.getElementById('requests-content').innerHTML = html; });
+}
+
+// --- Login submit ---
+document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const form = new FormData(this);
+  form.append("login", "1");
+  fetch('admin.php', { method: 'POST', body: form })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === 'success') {
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('dashboard-section').style.display = 'flex';
+        showSection('trip');
+      } else {
+        alert('Invalid login credentials');
+      }
+    });
+});
+
+// ------- Trip & Ticket CRUD Delegation (unchanged) -------
+document.addEventListener('submit', function(e) {
+  if (e.target && e.target.id === 'createTripForm') {
+    e.preventDefault();
+    let form = new FormData(e.target);
+    form.append('action', 'trip_create_confirm');
+    fetch('admin.php', { method: 'POST', body: form })
+      .then(res => res.text())
+      .then(msg => {
+        document.getElementById('createTripMsg').innerHTML = msg;
+        e.target.reset();
+      });
+  }
+  if (e.target && e.target.id === 'updateTripSearchForm') {
+    e.preventDefault();
+    let trip_id = e.target.trip_id.value;
+    fetch('admin.php', {
+      method: 'POST',
+      body: new URLSearchParams({ action: 'trip_update_form', trip_id })
+    })
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('updateTripFields').innerHTML = html;
+    });
+  }
+  if (e.target && e.target.id === 'updateTripForm') {
+    e.preventDefault();
+    let form = new FormData(e.target);
+    form.append('action', 'trip_update_confirm');
+    fetch('admin.php', { method: 'POST', body: form })
+      .then(res => res.text())
+      .then(msg => {
+        document.getElementById('updateTripMsg').innerHTML = msg;
+      });
+  }
+  if (e.target && e.target.id === 'deleteTripSearchForm') {
+    e.preventDefault();
+    let trip_id = e.target.trip_id.value;
+    fetch('admin.php', {
+      method: 'POST',
+      body: new URLSearchParams({ action: 'trip_delete_confirm', trip_id })
+    })
+    .then(res => res.text())
+    .then(msg => {
+      document.getElementById('deleteTripMsg').innerHTML = msg;
+      e.target.reset();
+    });
+  }
+  if (e.target && e.target.id === 'createTicketForm') {
+    e.preventDefault();
+    let form = new FormData(e.target);
+    form.append('action', 'ticket_create_confirm');
+    fetch('admin.php', { method: 'POST', body: form })
+      .then(res => res.text())
+      .then(msg => {
+        document.getElementById('createTicketMsg').innerHTML = msg;
+        e.target.reset();
+      });
+  }
+  if (e.target && e.target.id === 'updateTicketSearchForm') {
+    e.preventDefault();
+    let ticket_id = e.target.ticket_id.value;
+    fetch('admin.php', {
+      method: 'POST',
+      body: new URLSearchParams({ action: 'ticket_update_form', ticket_id })
+    })
+    .then(res => res.text())
+    .then(html => {
+      document.getElementById('updateTicketFields').innerHTML = html;
+    });
+  }
+  if (e.target && e.target.id === 'updateTicketForm') {
+    e.preventDefault();
+    let form = new FormData(e.target);
+    form.append('action', 'ticket_update_confirm');
+    fetch('admin.php', { method: 'POST', body: form })
+      .then(res => res.text())
+      .then(msg => {
+        document.getElementById('updateTicketMsg').innerHTML = msg;
+      });
+  }
+  if (e.target && e.target.id === 'deleteTicketSearchForm') {
+    e.preventDefault();
+    let ticket_id = e.target.ticket_id.value;
+    fetch('admin.php', {
+      method: 'POST',
+      body: new URLSearchParams({ action: 'ticket_delete_confirm', ticket_id })
+    })
+    .then(res => res.text())
+    .then(msg => {
+      document.getElementById('deleteTicketMsg').innerHTML = msg;
+      e.target.reset();
+    });
+  }
+});
+
+function loadCompanyStats(period) {
+  ['daily','monthly','yearly'].forEach(p=>{
+    document.getElementById('stat-btn-'+p).classList.remove('stat-btn-active');
+  });
+  document.getElementById('stat-btn-'+period).classList.add('stat-btn-active');
+  let el = document.getElementById('stats-content');
+  el.innerHTML = "<div style='padding:40px 0;text-align:center;'>Loading stats...</div>";
+  fetch('admin.php', {
+    method: 'POST',
+    body: new URLSearchParams({ action: 'company_stats_' + period })
+  })
+  .then(res => res.text())
+  .then(html => { el.innerHTML = html; });
+}
+document.addEventListener('DOMContentLoaded', ()=> {
+  document.getElementById('stat-btn-daily')?.click();
+});
+
+// Requests inline editor
+document.addEventListener('submit', function(e) {
+  if (e.target && e.target.classList.contains('updateStatusForm')) {
+    e.preventDefault();
+    let form = new FormData(e.target);
+    form.append('action', 'update_request_status');
+    fetch('admin.php', { method: 'POST', body: form })
+      .then(res => res.text())
+      .then(() => { loadRequests(); });
+  }
+});
+function showStatusEdit(id, statusValue) {
+  const el = document.getElementById('status-cell-' + id);
+  el.innerHTML = `
+    <form class="updateStatusForm" style="display:inline;">
+      <input type="hidden" name="id" value="${id}">
+      <input type="text" name="status" value="${statusValue.replace(/"/g,'&quot;')}" style="width:90px;">
+      <button type="submit">Save</button>
+    </form>
+  `;
+}
+</script>
+</body>
+</html>

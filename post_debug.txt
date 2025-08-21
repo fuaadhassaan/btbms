@@ -1,0 +1,16 @@
+Array
+(
+    [name] => Md. Fuad Hasan
+    [phone] => 01781081664
+    [email] => fuaadhassaan@gmail.com
+    [address] => Alif Tower, Joynal Market Road, Sector- 6, Uttara, Dhaka-1230
+    [boarding] => Dhaka
+    [dropping] => SYL
+    [paymentMethod] => Card
+    [bkash_number] => 
+    [card_number] => 133424
+    [expiry] => 11/29
+    [cvc] => 313
+    [trip_id] => TR6
+    [seats] => ["A1"]
+)
