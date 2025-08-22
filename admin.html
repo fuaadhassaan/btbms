@@ -23,7 +23,6 @@
 <div id="dashboard-section" style="display:none;">
   <div class="sidebar">
     <button id="home-btn" class="sidebar-top-btn">Home</button>
-    <button id="return-btn" class="sidebar-top-btn">Return</button>
     <button id="logout-btn" class="sidebar-top-btn logout-btn">Logout</button>
     <button onclick="showSection('trip')">Manage Trip</button>
     <button onclick="showSection('ticket')">Manage Ticket</button>
@@ -78,7 +77,6 @@ document.getElementById('loginHomeBtn').onclick = () => location.href = 'index.h
 
 // --- Dashboard sidebar buttons ---
 document.getElementById('home-btn').onclick   = () => location.href = 'index.html';
-document.getElementById('return-btn').onclick = () => history.back();
 document.getElementById('logout-btn').onclick = function() {
   fetch('admin.php', { method: 'POST', body: new URLSearchParams({ action: 'logout' }) })
     .then(() => { window.location.reload(); });
@@ -125,7 +123,7 @@ document.getElementById('adminLoginForm').addEventListener('submit', function(e)
     });
 });
 
-// ------- Trip & Ticket CRUD Delegation (unchanged) -------
+// ------- Trip & Ticket CRUD Delegation -------
 document.addEventListener('submit', function(e) {
   if (e.target && e.target.id === 'createTripForm') {
     e.preventDefault();
