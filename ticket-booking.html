@@ -1,322 +1,137 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Passenger Ticket Booking</title>
-  <link rel="stylesheet" href="css/ticket-booking.css" />
-</head>
-<body>
-  <div class="container">
-    <nav class="nav-panel">
-      <h2>Passenger</h2>
-      <button id="homeBtn" style="margin-top:20px; padding:8px 16px; font-size:16px; cursor:pointer; border: 1px solid red; background: black; color: white; border-radius: 6px;">Home</button>
-    </nav>
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  background-color: black;
+  color: white;
+  height: 100%;
+}
 
-    <main class="main-section">
-      <section class="search-form">
-        <h2>Search for Available Buses</h2>
-        <form id="busSearchForm">
-          <label for="from">From:</label>
-          <select id="from" name="from" required>
-            <option value="">Select City</option>
-            <option value="Dhaka">Dhaka</option>
-            <option value="Chittagong">Chittagong</option>
-            <option value="Sylhet">Sylhet</option>
-          </select>
+.container {
+  display: flex;
+  height: 100vh;
+}
 
-          <label for="to">To:</label>
-          <select id="to" name="to" required>
-            <option value="">Select City</option>
-            <option value="Dhaka">Dhaka</option>
-            <option value="Chittagong">Chittagong</option>
-            <option value="Sylhet">Sylhet</option>
-          </select>
+.nav-panel {
+  width: 250px;
+  background-color: black;
+  border-right: 2px solid red;
+  padding: 20px;
+}
 
-          <label for="date">Travel Date:</label>
-          <input type="date" id="date" name="date" required>
+.main-section {
+  flex: 1;
+  background-color: black;
+  padding: 30px;
+  overflow-y: auto;
+}
 
-          <button type="submit">Search Buses</button>
-        </form>
-      </section>
+.search-form form {
+  display: flex;
+  flex-direction: column;
+  max-width: 500px;
+}
 
-      <section class="results">
-        <h3>Available Buses</h3>
-        <table id="busResults">
-          <thead>
-            <tr>
-              <th style="display:none;">Trip ID</th>
-              <th>Date</th>
-              <th>Departure Time</th>
-              <th>Bus ID</th>
-              <th>From</th>
-              <th>To</th>
-              <th>Fare</th>
-              <th>Arrival Time</th>
-              <th>Available Seats</th>
-              <th>Select</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </section>
+.search-form form label,
+.search-form form select,
+.search-form form input {
+  margin-bottom: 10px;
+  font-size: 1em;
+}
 
-      <section id="seatSelection" style="display:none; margin-top:40px;">
-        <h3>Select Seats</h3>
-        <div id="seatLayout" class="seat-layout"></div>
+.search-form form button {
+  padding: 10px;
+  background: red;
+  color: white;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+}
 
-        <div class="legend">
-          <span class="seat available"></span> Available
-          <span class="seat selected"></span> Selected
-          <span class="seat booked"></span> Booked
-        </div>
+.results table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #222;
+  color: white;
+}
 
-        <form id="ticketForm" style="display:none; margin-top:30px;">
-          <h3>Passenger Information</h3>
-          <label>Full Name: <br/>
-          <input type="text" name="name" placeholder="Full Name" required></label><br/>
-          <label>Phone Number: <br/>
-          <input type="text" name="phone" placeholder="Phone Number" required /></label><br/>
-          <label>Email: <br/>
-          <input type="email" name="email" placeholder="Email" required /></label><br/>
-          <label>Address:<br/>
-          <input type="text" name="address" placeholder="Address" required /></label><br/>
-          <label>Boarding Point: <br/>
-          <input type="text" name="boarding" placeholder="Boarding Point" required /></label><br/>
-          <label>Dropping Point: <br/>
-          <input type="text" name="dropping" placeholder="Dropping Point" required /></label><br/>
+.results th, .results td {
+  border: 1px solid red;
+  padding: 10px;
+  text-align: center;
+}
 
-          <label>Payment Method: </label><br/>
-          <select id="paymentMethod" name="paymentMethod" required>
-            <option value="">Select</option><br/>
-            <option value="Bkash">Bkash</option><br/>
-            <option value="Card">Card</option><br/>
-          </select>
+.results th {
+  background-color: #111;
+}
 
-          <div id="bkashFields" style="display:none;">
-            <label>Bkash Number:<br/>
-            <input type="text" name="bkash_number" placeholder="Bkash Number" />
-          </div>
+.seat-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 20px;
+}
 
-          <div id="cardFields" style="display:none;">
-            <label>Card Number: <br/>
-            <input type="text" name="card_number" placeholder="Card Number" /></label><br/>
-            <label>Expiry (MM/YY): <br/>
-            <input type="text" name="expiry" placeholder="Expiry (MM/YY)" /></label><br/>
-            <label>CVC: <br/>
-            <input type="text" name="cvc" placeholder="CVC" /></label><br/>
-          </div>
+.seat-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
 
-          <button type="submit" id="confirmBookingBtn" 
-            style="margin-top:20px; padding:8px 16px; font-size:16px; cursor:pointer; 
-            border: 1px solid red; background: black; color: white; border-radius: 6px;">
-            Confirm Booking
-          </button>
+.seat {
+  width: 40px;
+  height: 40px;
+  border-radius: 5px;
+  background: white;
+  color: black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
 
-        </form>
-      </section>
-    </main>
-  </div>
+.seat.selected {
+  background: green;
+  color: white;
+}
 
-  <script>
-      (function lockDatePicker() {
-    const dateEl = document.getElementById('date');
-    const today = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    const toYMD = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+.seat.booked {
+  background: grey;
+  color: white;
+  cursor: not-allowed;
+}
 
-    // min = today
-    const min = toYMD(today);
-    dateEl.min = min;
+.seat.gap {
+  width: 40px;
+  height: 40px;
+  visibility: hidden;
+}
 
-    // optional: cap search window to next 60 days for UX
-    const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + 60);
-    dateEl.max = toYMD(maxDate);
+#ticketForm input,
+#ticketForm select {
+  width: 100%;
+  max-width: 500px;
+  padding: 10px;
+  font-size: 1em;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  border: none;
+}
 
-    // show today initially if empty
-    if (!dateEl.value) dateEl.value = min;
-  })();
-    // ---------- Setup date: default today + block past ----------
-    document.addEventListener('DOMContentLoaded', () => {
-      const dateInput = document.getElementById('date');
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      const isoToday = `${yyyy}-${mm}-${dd}`;
-      dateInput.min = isoToday;     // block past dates
-      if (!dateInput.value) dateInput.value = isoToday; // default to today
-    });
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
 
-    let selectedTripId = null;
-    let selectedSeats = [];
-
-    document.getElementById("homeBtn").onclick = function() {
-      window.location.href = "index.html";
-    };
-
-    document.getElementById("busSearchForm").addEventListener("submit", function (e) {
-      e.preventDefault();
-      const formData = new FormData(this);
-
-      fetch("php/search_trips.php", {
-        method: "POST",
-        body: formData,
-      })
-      .then(async res => {
-        const text = await res.text();
-        try { return JSON.parse(text); }
-        catch { throw new Error(text); }
-      })
-      .then(data => {
-        const tbody = document.querySelector("#busResults tbody");
-        tbody.innerHTML = "";
-
-        if (!Array.isArray(data) || data.length === 0) {
-          tbody.innerHTML = "<tr><td colspan='10'>No buses found.</td></tr>";
-          return;
-        }
-
-        data.forEach(trip => {
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td style="display:none;">${trip.trip_id}</td>
-            <td>${trip.travel_date ?? ""}</td>
-            <td>${trip.departure_time ?? ""}</td>
-            <td>${trip.bus_id ?? ""}</td>
-            <td>${trip.origin ?? ""}</td>
-            <td>${trip.destination ?? ""}</td>
-            <td>${trip.fare ?? ""}</td>
-            <td>${trip.arrival_time ?? trip.arrival ?? ""}</td>
-            <td>${trip.available_seats ?? "N/A"}</td>
-            <td><button type="button">Select</button></td>
-          `;
-          tbody.appendChild(row);
-        });
-      })
-      .catch(err => {
-        alert("Error fetching trips:\n\n" + err.message);
-        console.error(err);
-      });
-    });
-
-    document.addEventListener("click", function (e) {
-      if (e.target.tagName === "BUTTON" && e.target.innerText === "Select") {
-        const row = e.target.closest("tr");
-        selectedTripId = row.children[0].innerText.trim();
-        selectedSeats = [];
-        document.getElementById("seatSelection").style.display = "block";
-        document.getElementById("ticketForm").style.display = "none";
-        generateSeats();
-      }
-    });
-
-    function generateSeats() {
-      fetch("php/get_booked_seats.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ trip_id: selectedTripId }),
-      })
-      .then(res => res.json())
-      .then(bookedSeats => {
-        const layout = document.getElementById("seatLayout");
-        layout.innerHTML = "";
-        const rows = ["A","B","C","D","E","F","G","H","I"];
-        const cols = [1, 2, 3];
-
-        rows.forEach(r => {
-          const rowDiv = document.createElement("div");
-          rowDiv.className = "seat-row";
-
-          cols.forEach((c, idx) => {
-            const seatId = r + c;
-            const seat = document.createElement("div");
-            seat.innerText = seatId;
-            seat.dataset.seat = seatId;
-            seat.className = "seat";
-
-            if (Array.isArray(bookedSeats) && bookedSeats.includes(seatId)) {
-              seat.classList.add("booked");
-            } else {
-              seat.classList.add("available");
-              seat.onclick = () => toggleSeat(seat);
-            }
-
-            if (idx === 1) {
-              const gap = document.createElement("div");
-              gap.className = "seat gap";
-              rowDiv.appendChild(gap);
-            }
-
-            rowDiv.appendChild(seat);
-          });
-
-          layout.appendChild(rowDiv);
-        });
-      });
-    }
-
-    function toggleSeat(seat) {
-      if (seat.classList.contains("booked")) return;
-
-      const seatId = seat.dataset.seat;
-      if (seat.classList.contains("selected")) {
-        seat.classList.remove("selected");
-        selectedSeats = selectedSeats.filter(s => s !== seatId);
-      } else {
-        if (selectedSeats.length >= 4) {
-          alert("You can select up to 4 seats only.");
-          return;
-        }
-        seat.classList.add("selected");
-        selectedSeats.push(seatId);
-      }
-      document.getElementById("ticketForm").style.display = selectedSeats.length > 0 ? "block" : "none";
-    }
-
-    document.getElementById("paymentMethod").addEventListener("change", function () {
-      const method = this.value;
-      document.getElementById("bkashFields").style.display = method === "Bkash" ? "block" : "none";
-      document.getElementById("cardFields").style.display = method === "Card" ? "block" : "none";
-    });
-
-    document.getElementById("ticketForm").addEventListener("submit", function (e) {
-      e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
-      formData.append("trip_id", selectedTripId);
-      formData.append("seats", JSON.stringify(selectedSeats));
-
-      const method = formData.get("paymentMethod");
-      if (method === "Bkash") {
-        formData.set("bkash_number", document.querySelector("[name='bkash_number']").value);
-      }
-      if (method === "Card") {
-        formData.set("card_number", document.querySelector("[name='card_number']").value);
-        formData.set("expiry", document.querySelector("[name='expiry']").value);
-        formData.set("cvc", document.querySelector("[name='cvc']").value);
-      }
-
-      fetch("php/book_ticket.php", { method: "POST", body: formData })
-        .then(async res => {
-          const text = await res.text();
-          try {
-            const data = JSON.parse(text);
-            if (data.status === "success") {
-              alert("Your ticket has been confirmed and booked.");
-              window.location.reload();
-            } else {
-              alert("Booking failed: " + (data.message || "Unknown error"));
-            }
-          } catch {
-            alert("PHP error:\n\n" + text);
-          }
-        })
-        .catch(err => {
-          alert("Booking error (network)");
-          console.error(err);
-        });
-    });
-  </script>
-</body>
-</html>
+.legend .seat {
+  width: 20px;
+  height: 20px;
+}
+.seat.booked {
+  background: grey;
+  color: white;
+  cursor: not-allowed;
+}
