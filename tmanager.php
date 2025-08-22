@@ -77,16 +77,15 @@ if (isset($_POST['request_admin']) && isset($_SESSION['tmanager_logged_in'])) {
 <?php else: ?>
   <div id="dashboard-section" style="display:flex;">
     <div class="sidebar">
-      <a href="index.html"><button id="btn-home">&#8962; Home</button></a>
-      <h3>Sections</h3>
+      <a href="index.html"><button id="btn-home"> Home</button></a>
       <button class="tab-btn active" data-tab="trip-stats">Trip Stats</button>
       <button class="tab-btn" data-tab="trip-money">Trip Money</button>
       <button class="tab-btn" data-tab="staff-comp">Staff Compensation</button>
       <button class="tab-btn" data-tab="vehicle-cost">Vehicle's Cost</button>
       <button class="tab-btn" data-tab="profit-loss">Profit / Loss</button>
       <button class="tab-btn" data-tab="request-admin">Request to Admin</button>
+      <a href="index.html"><button id="logout"> Logout</button></a>
       <form method="post" action="" style="margin-top:30px;">
-        <button type="submit" name="logout" style="background:#ff4b4b; color:#fff;">Logout</button>
       </form>
     </div>
     <div class="main-content">
@@ -159,7 +158,9 @@ if (isset($_POST['request_admin']) && isset($_SESSION['tmanager_logged_in'])) {
       <div id="request-admin" class="content-section" style="display:none;">
         <h2>Request to Admin</h2>
         <form method="post" action="" id="adminRequestForm">
+          <label for="subject">Subject</label><br />
           <input type="text" name="subject" placeholder="Subject" required /><br />
+          <label for="details">Details</label><br />
           <textarea name="details" placeholder="Request Details" required></textarea><br />
           <button type="submit" name="request_admin">Send Request</button>
         </form>
