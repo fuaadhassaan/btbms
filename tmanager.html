@@ -105,7 +105,9 @@
       <div id="request-admin" class="content-section" style="display:none;">
         <h2>Request to Admin</h2>
         <form method="post" action="tmanager.php" id="adminRequestForm">
+          <label for="subject">Subject</label><br />
           <input type="text" name="subject" placeholder="Subject" required /><br />
+          <label for="details">Details</label><br />
           <textarea name="details" placeholder="Request Details" required></textarea><br />
           <button type="submit" name="request_admin">Send Request</button>
         </form>
