@@ -3,36 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <title>BTBMS - Home</title>
-  <link rel="stylesheet" href="css/index.css" />
+  <link rel="stylesheet" href="index.css" />
 </head>
 <body>
-    <!-- Main Content Area -->
-    <main class="main-section">
-      <section class="banner" id="home">
-        <div class="banner-content">
-          <h1>Bus Ticket Booking & Management System</h1>
-          <div class="btbms-subtitle">BTBMS</div>
-          <p>An Easy, reliable and fast ticket booking service with ticket management features, LIKE NEVER BEFORE!</p>
-          <button onclick="scrollToExplore()">Explore The Unknown</button>
-        </div>
-      </section>
+  <main class="main-section">
+    <!-- HERO / BANNER -->
+    <section class="banner" id="home" aria-label="BTBMS hero banner">
+      <div class="banner-content">
+        <h1>Bus Ticket Booking &amp; Management System</h1>
+        <div class="btbms-subtitle">BTBMS</div>
+        <p>An easy, reliable and fast ticket booking service with ticket management features — LIKE NEVER BEFORE!</p>
+        <button class="explore-btn" type="button" onclick="scrollToExplore()">Explore</button>
+      </div>
+    </section>
 
-      <section class="explore" id="explore">
-        <h2>Select Your Access</h2>
-        <div class="access-buttons">
-          <a href="admin.html">Admin</a>
-          <a href="cmanager.html">Counter Manager</a>
-          <a href="tmanager.html">Transport Manager</a>
-          <a href="ticket-booking.html">Passenger's Ticket Booking System</a>
-        </div>
-      </section>
-    </main>
+    <!-- EXPLORE -->
+    <section class="explore" id="explore" aria-label="Choose role">
+      <h2>Select Your Access</h2>
+      <div class="access-buttons">
+        <a class="btn" href="admin.html">Admin</a>
+        <a class="btn" href="cmanager.html">Counter Manager</a>
+        <a class="btn" href="tmanager.html">Transport Manager</a>
+        <a class="btn" href="ticket-booking.html">Passenger's Ticket Booking System</a>
+      </div>
+    </section>
+  </main>
 
-    <!-- Footer -->
-<footer>
-  All Rights Reserved by Team BTBMS© |
-  For enquiries, email: <a href="mailto:support.btbms@gmail.com">support.btbms@gmail.com</a>
-</footer>
+  <!-- Footer -->
+  <footer>
+    All Rights Reserved by Team BTBMS© |
+    For enquiries, email: <a href="mailto:support.btbms@gmail.com">support.btbms@gmail.com</a>
+  </footer>
 
   <script>
     function scrollToExplore() {
