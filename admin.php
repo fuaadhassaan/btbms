@@ -81,10 +81,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="text" name="bus_id" placeholder="Bus ID" required><br/>
 
       <label for="origin">Origin</label><br/>
-      <input type="text" name="origin" placeholder="Origin" required><br/>
+      <select name="origin" required> <br/>
+        <option value="" disabled selected>-- Select Origin --</option> <br/>
+        <option value="Dhaka">Dhaka</option>
+        <option value="Chittagong">Chittagong</option>
+        <option value="Sylhet">Sylhet</option>
+      </select><br/>
 
       <label for="destination">Destination</label><br/>
-      <input type="text" name="destination" placeholder="Destination" required><br/>
+      <select name="destination" required> <br/>
+        <option value="" disabled selected>-- Select Destination --</option> <br/>
+        <option value="Dhaka">Dhaka</option>
+        <option value="Chittagong">Chittagong</option>
+        <option value="Sylhet">Sylhet</option>
+      </select><br/>
 
       <label for="travel_date">Travel Date</label><br/>
       <input type="date" name="travel_date" required><br/>
@@ -109,14 +119,22 @@ HTML;
   if ($action === 'trip_create_confirm') {
     $trip_id        = trim($_POST['trip_id'] ?? '');
     $bus_id         = trim($_POST['bus_id'] ?? '');
-    $origin         = trim($_POST['origin'] ?? '');
+
+    // Dropdown origin + validation
+    $origin = trim($_POST['origin'] ?? '');
+    $allowedOrigins = ['Dhaka','Chittagong','Sylhet'];
+    if (!in_array($origin, $allowedOrigins, true)) {
+      echo "<span style='color:red;'>Invalid origin selected.</span>";
+      exit;
+    }
+
     $destination    = trim($_POST['destination'] ?? '');
     $travel_date    = trim($_POST['travel_date'] ?? '');
     $departure_time = trim($_POST['departure_time'] ?? '');
     $arrival_time   = trim($_POST['arrival_time'] ?? '');
     $fare           = (int)($_POST['fare'] ?? 0);
 
-    // sanity defaults for columns some schemas still have
+    // sanity defaults for old schemas
     $available_seats = 28;
 
     $stmt = $conn->prepare(
@@ -160,10 +178,20 @@ HTML;
     $row = $stmt->get_result()->fetch_assoc();
 
     if ($row) {
-      // fallback to empty strings if columns are nullable/missing
       $dep = htmlspecialchars($row['departure_time'] ?? '');
       $arr = htmlspecialchars($row['arrival_time'] ?? '');
       $fare = htmlspecialchars($row['fare'] ?? '');
+      $originOptions = function($current){
+        $opts = ['Dhaka','Chittagong','Sylhet'];
+        $html = '';
+        foreach ($opts as $o) {
+          $sel = ($o === $current) ? 'selected' : '';
+          $html .= "<option value=\"$o\" $sel>$o</option>";
+        }
+        return $html;
+      };
+      $originSelect = $originOptions($row['origin'] ?? '');
+
       echo <<<HTML
       <form id="updateTripForm">
         <label for="trip_id">Trip ID</label><br/>
@@ -173,7 +201,9 @@ HTML;
         <input type="text" name="bus_id" value="{$row['bus_id']}" required><br/>
 
         <label for="origin">Origin</label><br/>
-        <input type="text" name="origin" value="{$row['origin']}" required><br/>
+        <select name="origin" required>
+          $originSelect
+        </select><br/>
 
         <label for="destination">Destination</label><br/>
         <input type="text" name="destination" value="{$row['destination']}" required><br/>
@@ -210,6 +240,16 @@ HTML;
     $arrival_time   = trim($_POST['arrival_time'] ?? '');
     $fare           = (int)($_POST['fare'] ?? 0);
 
+    // validate origin again
+    if (!in_array($origin, ['Dhaka','Chittagong', 'Sylhet'], true)) {
+      echo "<span style='color:red;'>Invalid origin selected.</span>";
+      exit;
+    }
+    if (!in_array($destination, ['Dhaka','Chittagong', 'Sylhet'], true)) {
+      echo "<span style='color:red;'>Invalid destination selected.</span>";
+      exit;
+    }
+
     $stmt = $conn->prepare(
       "UPDATE trips
        SET bus_id=?, origin=?, destination=?, travel_date=?, departure_time=?, arrival_time=?, fare=?
@@ -245,7 +285,6 @@ HTML;
   if ($action === 'trip_delete_confirm') {
     $trip_id = trim($_POST['trip_id'] ?? '');
 
-    // Verify the trip exists
     $stmt = $conn->prepare("SELECT trip_id FROM trips WHERE trip_id=?");
     $stmt->bind_param('s', $trip_id);
     $stmt->execute();
@@ -259,23 +298,17 @@ HTML;
     try {
       $conn->begin_transaction();
 
-      // Count dependent tickets
       $stmt = $conn->prepare("SELECT COUNT(*) AS c FROM tickets WHERE trip_id=?");
       $stmt->bind_param('s', $trip_id);
       $stmt->execute();
       $count = (int)$stmt->get_result()->fetch_assoc()['c'];
 
-      // If you'd rather BLOCK deletion when tickets exist, uncomment below and remove the cascading deletes.
-      // if ($count > 0) { throw new Exception('Cannot delete: ' . $count . ' ticket(s) exist for this trip. Delete those tickets first.'); }
-
-      // Cascade-delete tickets first (satisfy FK)
       if ($count > 0) {
         $stmt = $conn->prepare("DELETE FROM tickets WHERE trip_id=?");
         $stmt->bind_param('s', $trip_id);
         $stmt->execute();
       }
 
-      // Now delete the trip
       $stmt = $conn->prepare("DELETE FROM trips WHERE trip_id=?");
       $stmt->bind_param('s', $trip_id);
       $stmt->execute();
