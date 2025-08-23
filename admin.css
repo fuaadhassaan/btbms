@@ -153,3 +153,17 @@ th, td {
 th {
   background: #181818;
 }
+
+/* Make <select> dropdowns same size as text inputs */
+form select {
+  width: 270px;        /* same as input fields */
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 5px;
+  border: none;
+  font-size: 1em;
+  background-color: #fff; /* white block */
+  color: #000;            /* black text */
+  box-sizing: border-box;
+}
+
