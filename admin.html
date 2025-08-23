@@ -29,8 +29,8 @@
     <button onclick="showSection('stats')">Overview Company Stats</button>
     <button onclick="showSection('requests')">Handle Requests</button>
   </div>
+
   <div class="main-content">
-    
     <!-- Manage Trip -->
     <div class="content-section" id="trip">
       <h2>Manage Trip</h2>
@@ -42,6 +42,7 @@
       </div>
       <div id="trip-content"></div>
     </div>
+
     <!-- Manage Ticket -->
     <div class="content-section" id="ticket">
       <h2>Manage Ticket</h2>
@@ -53,6 +54,7 @@
       </div>
       <div id="ticket-content"></div>
     </div>
+
     <!-- Overview Company Stats -->
     <div class="content-section" id="stats">
       <h2>Overview Company Stats</h2>
@@ -63,6 +65,7 @@
       </div>
       <div id="stats-content"></div>
     </div>
+
     <!-- Handle Requests -->
     <div class="content-section" id="requests">
       <h2>Handle Requests</h2>
@@ -252,8 +255,8 @@ function showStatusEdit(id, statusValue) {
   const el = document.getElementById('status-cell-' + id);
   el.innerHTML = `
     <form class="updateStatusForm" style="display:inline;">
-      <input type="hidden" name="id" value="${id}">
-      <input type="text" name="status" value="${statusValue.replace(/"/g,'&quot;')}" style="width:90px;">
+      <input type="hidden" name="id" value="\${id}">
+      <input type="text" name="status" value="\${statusValue.replace(/"/g,'&quot;')}" style="width:90px;">
       <button type="submit">Save</button>
     </form>
   `;
