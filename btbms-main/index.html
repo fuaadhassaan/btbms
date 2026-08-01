@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTBMS - Home</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+  <main class="main-section">
+    <!-- HERO / BANNER -->
+    <section class="banner" id="home" aria-label="BTBMS hero banner">
+      <div class="banner-content">
+        <h1>Bus Ticket Booking &amp; Management System</h1>
+        <div class="btbms-subtitle">BTBMS</div>
+        <p>An easy, reliable and fast ticket booking service with ticket management features — LIKE NEVER BEFORE!</p>
+        <button class="explore-btn" type="button" onclick="scrollToExplore()">Explore</button>
+      </div>
+    </section>
+
+    <!-- EXPLORE -->
+    <section class="explore" id="explore" aria-label="Choose role">
+      <h2>Select Your Access</h2>
+      <div class="access-buttons">
+        <a class="btn" href="admin.html">Admin</a>
+        <a class="btn" href="cmanager.html">Counter Manager</a>
+        <a class="btn" href="ticket-booking.html">Passenger's Ticket Booking System</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    All Rights Reserved by Md. Fuad Hasan© |
+    For enquiries, email at: <a href="mailto:fuaadhassaan@gmail.com">fuaadhassaan@gmail.com</a>
+  </footer>
+
+  <script>
+    function scrollToExplore() {
+      document.getElementById("explore").scrollIntoView({ behavior: "smooth" });
+    }
+  </script>
+  <script>
+  (() => {
+    const clockId = 'bd-clock';
+    const timeZone = 'Asia/Dhaka';
+
+    function formatTime(date) {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      }).format(date);
+    }
+
+    function ensureClock() {
+      let clock = document.getElementById(clockId);
+      if (!clock) {
+        clock = document.createElement('div');
+        clock.id = clockId;
+        clock.setAttribute('aria-live', 'polite');
+        clock.setAttribute('title', 'Bangladesh Standard Time (UTC+6)');
+        clock.style.position = 'fixed';
+        clock.style.top = '16px';
+        clock.style.right = '16px';
+        clock.style.zIndex = '9999';
+        clock.style.padding = '10px 14px';
+        clock.style.borderRadius = '999px';
+        clock.style.background = 'rgba(0, 0, 0, 0.82)';
+        clock.style.color = '#fff';
+        clock.style.font = '600 14px/1.1 Arial, sans-serif';
+        clock.style.letterSpacing = '0.08em';
+        clock.style.boxShadow = '0 10px 24px rgba(0, 0, 0, 0.25)';
+        clock.style.pointerEvents = 'none';
+        document.body.appendChild(clock);
+      }
+      const update = () => { clock.textContent = formatTime(new Date()); };
+      update();
+      window.setInterval(update, 1000);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ensureClock, { once: true });
+    } else {
+      ensureClock();
+    }
+  })();
+  </script>
+</body>
+</html>

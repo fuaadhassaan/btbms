@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTBMS - Search Trips</title>
+  <link rel="stylesheet" href="index.css" />
+  <link rel="stylesheet" href="ticket-booking.css" />
+</head>
+<body>
+  <main class="main-section">
+    <a href="index.html" class="home-btn">Home</a>
+    <section class="explore" aria-label="Search a trip">
+      <h2>Search Your Trip</h2>
+      <form class="search-form" id="searchForm">
+        <label for="from">From</label>
+        <select id="from" name="from" required>
+          <option value="">Select From</option>
+          <option value="Dhaka">Dhaka</option>
+          <option value="Chittagong">Chittagong</option>
+          <option value="Sylhet">Sylhet</option>
+        </select>
+        <label for="to">To</label>
+        <select id="to" name="to" required>
+          <option value="">Select To</option>
+          <option value="Dhaka">Dhaka</option>
+          <option value="Chittagong">Chittagong</option>
+          <option value="Sylhet">Sylhet</option>
+        </select>
+        <label for="travel_date">Date</label>
+        <input type="date" id="travel_date" name="travel_date" required />
+        <button class="btn" type="submit">Search Trip</button>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    // Instead of submitting to search_trips.php (which Vercel can't run),
+    // we redirect to trip-results.html with the search criteria as query
+    // params. trip-results.html does the filtering client-side.
+    document.getElementById('searchForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const from = document.getElementById('from').value;
+      const to = document.getElementById('to').value;
+      const date = document.getElementById('travel_date').value;
+
+      const params = new URLSearchParams({ from, to, date });
+      window.location.href = 'trip-results.html?' + params.toString();
+    });
+  </script>
+  <script>
+  (() => {
+    const clockId = 'bd-clock';
+    const timeZone = 'Asia/Dhaka';
+
+    function formatTime(date) {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      }).format(date);
+    }
+
+    function ensureClock() {
+      let clock = document.getElementById(clockId);
+      if (!clock) {
+        clock = document.createElement('div');
+        clock.id = clockId;
+        clock.setAttribute('aria-live', 'polite');
+        clock.setAttribute('title', 'Bangladesh Standard Time (UTC+6)');
+        clock.style.position = 'fixed';
+        clock.style.top = '16px';
+        clock.style.right = '16px';
+        clock.style.zIndex = '9999';
+        clock.style.padding = '10px 14px';
+        clock.style.borderRadius = '999px';
+        clock.style.background = 'rgba(0, 0, 0, 0.82)';
+        clock.style.color = '#fff';
+        clock.style.font = '600 14px/1.1 Arial, sans-serif';
+        clock.style.letterSpacing = '0.08em';
+        clock.style.boxShadow = '0 10px 24px rgba(0, 0, 0, 0.25)';
+        clock.style.pointerEvents = 'none';
+        document.body.appendChild(clock);
+      }
+      const update = () => { clock.textContent = formatTime(new Date()); };
+      update();
+      window.setInterval(update, 1000);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ensureClock, { once: true });
+    } else {
+      ensureClock();
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BTBMS - Trip Results</title>
+  <link rel="stylesheet" href="index.css" />
+  <link rel="stylesheet" href="ticket-booking.css" />
+</head>
+<body>
+  <main class="main-section">
+    <a href="index.html" class="home-btn">Home</a>
+    <a href="ticket-booking.html" class="home-btn" style="background:#333;">&larr; New Search</a>
+
+    <section class="results" aria-label="Trip search results">
+      <h2 id="resultsHeading">Search Results</h2>
+      <div id="resultsContainer">Loading...</div>
+    </section>
+  </main>
+
+  <script src="trips-data.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const from = params.get('from') || '';
+    const to = params.get('to') || '';
+    const date = params.get('date') || '';
+
+    document.getElementById('resultsHeading').textContent =
+      `Trips: ${from || '—'} to ${to || '—'}` + (date ? ` (from ${date})` : '');
+
+    const trips = searchTrips(from, to, date);
+    const container = document.getElementById('resultsContainer');
+
+    if (trips.length === 0) {
+      container.innerHTML = '<p>No trips in this date, search other dates.</p>';
+    } else {
+      let html = '<table><thead><tr>' +
+        '<th>Trip ID</th><th>Bus</th><th>Origin</th><th>Destination</th>' +
+        '<th>Departure</th><th>Arrival</th><th>Fare</th><th>Travel Date</th>' +
+        '<th>Available Seats</th><th></th>' +
+        '</tr></thead><tbody>';
+
+      for (const t of trips) {
+        html += `<tr>
+          <td>${t.trip_id}</td>
+          <td>${t.bus_id}</td>
+          <td>${t.origin}</td>
+          <td>${t.destination}</td>
+          <td>${t.departure_time}</td>
+          <td>${t.arrival_time}</td>
+          <td>${t.fare.toFixed(2)}</td>
+          <td>${t.travel_date}</td>
+          <td>${t.available_seats}</td>
+          <td><button class="btn" ${t.available_seats === 0 ? 'disabled' : ''} onclick="selectTrip('${t.trip_id}')">Select</button></td>
+        </tr>`;
+      }
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function selectTrip(tripId) {
+      // Hook this up to your seat-selection page, e.g.:
+      // window.location.href = 'seat-selection.html?trip_id=' + encodeURIComponent(tripId);
+      alert('Selected trip: ' + tripId + ' — wire this up to your seat-selection page.');
+    }
+  </script>
+  <script>
+  (() => {
+    const clockId = 'bd-clock';
+    const timeZone = 'Asia/Dhaka';
+
+    function formatTime(date) {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      }).format(date);
+    }
+
+    function ensureClock() {
+      let clock = document.getElementById(clockId);
+      if (!clock) {
+        clock = document.createElement('div');
+        clock.id = clockId;
+        clock.setAttribute('aria-live', 'polite');
+        clock.setAttribute('title', 'Bangladesh Standard Time (UTC+6)');
+        clock.style.position = 'fixed';
+        clock.style.top = '16px';
+        clock.style.right = '16px';
+        clock.style.zIndex = '9999';
+        clock.style.padding = '10px 14px';
+        clock.style.borderRadius = '999px';
+        clock.style.background = 'rgba(0, 0, 0, 0.82)';
+        clock.style.color = '#fff';
+        clock.style.font = '600 14px/1.1 Arial, sans-serif';
+        clock.style.letterSpacing = '0.08em';
+        clock.style.boxShadow = '0 10px 24px rgba(0, 0, 0, 0.25)';
+        clock.style.pointerEvents = 'none';
+        document.body.appendChild(clock);
+      }
+      const update = () => { clock.textContent = formatTime(new Date()); };
+      update();
+      window.setInterval(update, 1000);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', ensureClock, { once: true });
+    } else {
+      ensureClock();
+    }
+  })();
+  </script>
+</body>
+</html>
