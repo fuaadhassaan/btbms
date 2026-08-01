@@ -17,10 +17,9 @@
       </div>
     </section>
     
-    <!-- LIVE DATA (from data/db.json) -->
-    <section class="live-data" id="live-data" aria-label="Live DB data">
-      <h2>Live Data (exported from phpMyAdmin)</h2>
-      <div id="db-results">No data loaded.</div>
+    <!-- Small note about live data (data exported for admin use) -->
+    <section class="live-data-note" aria-label="Live data note">
+      <p style="color:rgba(255,255,255,0.75);">Live data is available to the admin panel. To view trips, use the booking search or visit the <a href="trip-results.html">Results page</a>.</p>
     </section>
 
     <!-- EXPLORE -->
@@ -45,58 +44,7 @@
       document.getElementById("explore").scrollIntoView({ behavior: "smooth" });
     }
   </script>
-  <script>
-  // Fetch local-copied DB JSON (data/db.json) periodically and render
-  (function(){
-    const el = document.getElementById('db-results');
-    async function load() {
-      try {
-        const res = await fetch('/data/db.json', { cache: 'no-store' });
-        if (!res.ok) return el.textContent = 'No data available.';
-        const json = await res.json();
-        el.innerHTML = '';
-
-        // If JSON has tables, render them separately
-        if (json.buses || json.trips) {
-          if (json.buses) {
-            const h = document.createElement('h3'); h.textContent = 'Buses'; el.appendChild(h);
-            json.buses.forEach(b => {
-              const div = document.createElement('div');
-              div.textContent = `${b.bus_id} — seats: ${b.total_seats}`;
-              el.appendChild(div);
-            });
-          }
-          if (json.trips) {
-            const h2 = document.createElement('h3'); h2.textContent = 'Trips'; el.appendChild(h2);
-            json.trips.forEach(t => {
-              const pre = document.createElement('pre');
-              pre.textContent = `(${t.trip_id}) ${t.origin} → ${t.destination} | ${t.travel_date} ${t.departure_time}-${t.arrival_time} | fare: ${t.fare} | avail: ${t.available_seats}`;
-              el.appendChild(pre);
-            });
-          }
-          return;
-        }
-
-        // Fallback: if JSON is an array
-        if (Array.isArray(json)) {
-          json.forEach(row => {
-            const pre = document.createElement('pre');
-            pre.textContent = JSON.stringify(row, null, 2);
-            el.appendChild(pre);
-          });
-          return;
-        }
-
-        el.textContent = JSON.stringify(json, null, 2);
-      } catch (err) {
-        el.textContent = 'Error loading data.';
-        console.error(err);
-      }
-    }
-    load();
-    setInterval(load, 15000);
-  })();
-  </script>
+  <!-- live data display removed from homepage; trips render on trip-results.html -->
   <script>
   (() => {
     const clockId = 'bd-clock';

@@ -17,51 +17,65 @@
     </section>
   </main>
 
-  <script src="trips-data.js"></script>
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const from = params.get('from') || '';
-    const to = params.get('to') || '';
-    const date = params.get('date') || '';
+    // Load trips from data/db.json (committed export) and filter by query params
+    (async function(){
+      const params = new URLSearchParams(window.location.search);
+      const from = (params.get('from') || '').toLowerCase();
+      const to = (params.get('to') || '').toLowerCase();
+      const date = params.get('date') || '';
 
-    document.getElementById('resultsHeading').textContent =
-      `Trips: ${from || '—'} to ${to || '—'}` + (date ? ` (from ${date})` : '');
+      document.getElementById('resultsHeading').textContent =
+        `Trips: ${params.get('from') || '—'} to ${params.get('to') || '—'}` + (date ? ` (from ${date})` : '');
 
-    const trips = searchTrips(from, to, date);
-    const container = document.getElementById('resultsContainer');
+      const container = document.getElementById('resultsContainer');
+      try {
+        const res = await fetch('/data/db.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('No data');
+        const db = await res.json();
+        const trips = (db.trips || []).filter(t => {
+          const okFrom = !from || (t.origin || '').toLowerCase() === from;
+          const okTo = !to || (t.destination || '').toLowerCase() === to;
+          const okDate = !date || (t.travel_date || '') === date;
+          return okFrom && okTo && okDate;
+        });
 
-    if (trips.length === 0) {
-      container.innerHTML = '<p>No trips in this date, search other dates.</p>';
-    } else {
-      let html = '<table><thead><tr>' +
-        '<th>Trip ID</th><th>Bus</th><th>Origin</th><th>Destination</th>' +
-        '<th>Departure</th><th>Arrival</th><th>Fare</th><th>Travel Date</th>' +
-        '<th>Available Seats</th><th></th>' +
-        '</tr></thead><tbody>';
+        if (trips.length === 0) {
+          container.innerHTML = '<p>No trips in this date, search other dates.</p>';
+          return;
+        }
 
-      for (const t of trips) {
-        html += `<tr>
-          <td>${t.trip_id}</td>
-          <td>${t.bus_id}</td>
-          <td>${t.origin}</td>
-          <td>${t.destination}</td>
-          <td>${t.departure_time}</td>
-          <td>${t.arrival_time}</td>
-          <td>${t.fare.toFixed(2)}</td>
-          <td>${t.travel_date}</td>
-          <td>${t.available_seats}</td>
-          <td><button class="btn" ${t.available_seats === 0 ? 'disabled' : ''} onclick="selectTrip('${t.trip_id}')">Select</button></td>
-        </tr>`;
+        let html = '<table><thead><tr>' +
+          '<th>Trip ID</th><th>Bus</th><th>Origin</th><th>Destination</th>' +
+          '<th>Departure</th><th>Arrival</th><th>Fare</th><th>Travel Date</th>' +
+          '<th>Available Seats</th><th></th>' +
+          '</tr></thead><tbody>';
+
+        for (const t of trips) {
+          html += `<tr>
+            <td>${t.trip_id}</td>
+            <td>${t.bus_id}</td>
+            <td>${t.origin}</td>
+            <td>${t.destination}</td>
+            <td>${t.departure_time}</td>
+            <td>${t.arrival_time}</td>
+            <td>${(t.fare || 0).toFixed ? (t.fare).toFixed(2) : t.fare}</td>
+            <td>${t.travel_date}</td>
+            <td>${t.available_seats}</td>
+            <td><button class="btn" ${t.available_seats === 0 ? 'disabled' : ''} onclick="selectTrip('${t.trip_id}')">Select</button></td>
+          </tr>`;
+        }
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = '<p>Unable to load trip data.</p>';
       }
-
-      html += '</tbody></table>';
-      container.innerHTML = html;
-    }
+    })();
 
     function selectTrip(tripId) {
-      // Hook this up to your seat-selection page, e.g.:
-      // window.location.href = 'seat-selection.html?trip_id=' + encodeURIComponent(tripId);
-      alert('Selected trip: ' + tripId + ' — wire this up to your seat-selection page.');
+      alert('Selected trip: ' + tripId);
     }
   </script>
   <script>
