@@ -1,1 +1,12 @@
-[]
+{
+	"buses": [
+		{ "bus_id": "BUS1", "total_seats": 28 },
+		{ "bus_id": "BUS2", "total_seats": 28 }
+	],
+	"trips": [
+		{ "trip_id": "TR1", "bus_id": "BUS1", "origin": "Dhaka", "destination": "Chittagong", "departure_time": "09:00:00", "arrival_time": "15:00:00", "fare": 1200.00, "travel_date": "2026-07-27", "available_seats": 28 },
+		{ "trip_id": "TR2", "bus_id": "BUS2", "origin": "Dhaka", "destination": "Sylhet", "departure_time": "10:00:00", "arrival_time": "17:00:00", "fare": 1000.00, "travel_date": "2026-07-29", "available_seats": 28 },
+		{ "trip_id": "TR3", "bus_id": "BUS1", "origin": "Chittagong", "destination": "Dhaka", "departure_time": "10:00:00", "arrival_time": "16:00:00", "fare": 1200.00, "travel_date": "2026-07-31", "available_seats": 28 },
+		{ "trip_id": "TR4", "bus_id": "BUS2", "origin": "Sylhet", "destination": "Dhaka", "departure_time": "10:00:00", "arrival_time": "16:00:00", "fare": 1000.00, "travel_date": "2026-08-03", "available_seats": 28 }
+	]
+}
