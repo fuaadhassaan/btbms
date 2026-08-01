@@ -56,6 +56,7 @@ function Run-Query($sql) {
 # Queries - ensure column order matches expectations
 $busesQuery = "SELECT bus_id, total_seats FROM buses;"
 $tripsQuery = "SELECT trip_id, bus_id, origin, destination, departure_time, arrival_time, fare, travel_date, available_seats FROM trips;"
+$bookingsQuery = "SELECT booking_id, trip_id, seat_label, passenger_name, booked_at FROM bookings;"
 
 function Parse-Tabular($raw) {
     if (-not $raw) { return @() }
@@ -90,7 +91,11 @@ try {
     $rawT = Run-Query $tripsQuery
     $trips = Parse-Tabular $rawT
 
-    $dbObj = @{ buses = $buses; trips = $trips }
+    Write-Host "Querying bookings..."
+    $rawBk = Run-Query $bookingsQuery
+    $bookings = Parse-Tabular $rawBk
+
+    $dbObj = @{ buses = $buses; trips = $trips; bookings = $bookings }
     $json = $dbObj | ConvertTo-Json -Depth 5
 
     $dataDir = Join-Path $repoRoot 'data'

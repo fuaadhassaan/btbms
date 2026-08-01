@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Seat Selection</title>
+  <link rel="stylesheet" href="index.css">
+  <style>
+    body, html { height:100%; }
+    .seat-area { max-width:900px; margin:40px auto; color:white; }
+    .screen { text-align:center; margin-bottom:18px; color:#ddd }
+    .seats { display:flex; flex-direction:column; gap:10px; align-items:center }
+    .seat-row { display:flex; gap:14px; }
+    .seat { width:58px; height:58px; border-radius:6px; background:#fff; color:#000; display:flex; align-items:center; justify-content:center; cursor:pointer; font-weight:600 }
+    .seat.booked { background:#666; color:#fff; cursor:not-allowed; }
+    .seat.selected { background:green; color:white }
+    .seat.gap { width:22px; visibility:hidden }
+    .controls { margin-top:18px; display:flex; gap:12px; align-items:center }
+    .btn { padding:10px 16px; background:red; border:none; color:white; border-radius:6px; cursor:pointer }
+    .info { margin-top:12px; color:#ccc }
+    .sqlbox { white-space:pre-wrap; background:#111; color:#9f9; padding:12px; border-radius:6px; margin-top:10px }
+  </style>
+</head>
+<body>
+  <main class="main-section">
+    <div class="seat-area">
+      <div class="screen">SCREEN</div>
+      <h2 id="title">Select seats</h2>
+      <div class="seats" id="seats"></div>
+      <div class="controls">
+        <button id="confirmBtn" class="btn">Request Booking (generate SQL)</button>
+        <button id="refreshBtn" class="btn" style="background:#444">Refresh</button>
+      </div>
+      <div class="info" id="info">Selected: <span id="selCount">0</span></div>
+      <div id="sql" class="sqlbox" style="display:none"></div>
+      <p class="info">Instructions: after running the generated SQL in phpMyAdmin, run <code>export-db.ps1</code> locally to update the live site.</p>
+    </div>
+  </main>
+
+<script>
+(function(){
+  // build seat labels: rows A-H (3 seats each), row I (4 seats) = 28 seats
+  const rows = ['A','B','C','D','E','F','G','H'];
+  const seats = [];
+  for (const r of rows) {
+    for (let c=1;c<=3;c++) seats.push(r+c);
+  }
+  // row I with 4 seats
+  for (let c=1;c<=4;c++) seats.push('I'+c);
+
+  const seatsContainer = document.getElementById('seats');
+  const sel = new Set();
+  const tripId = new URLSearchParams(window.location.search).get('trip_id') || 'TR1';
+  document.getElementById('title').textContent = 'Select seats for ' + tripId;
+
+  // create rows visually: we want rows labeled A..I stacked
+  function renderEmpty() {
+    seatsContainer.innerHTML = '';
+    // rows A-H
+    for (const r of rows) {
+      const rowDiv = document.createElement('div'); rowDiv.className='seat-row';
+      // seats 1, gap, 2,3? user wanted gap between A1 and A2: make small gap after first seat
+      const s1 = createSeat(r+'1'); rowDiv.appendChild(s1);
+      const gap = document.createElement('div'); gap.className='seat gap'; gap.style.visibility='hidden'; gap.style.width='22px'; rowDiv.appendChild(gap);
+      const s2 = createSeat(r+'2'); rowDiv.appendChild(s2);
+      const s3 = createSeat(r+'3'); rowDiv.appendChild(s3);
+      seatsContainer.appendChild(rowDiv);
+    }
+    // row I with 4 seats
+    const rowI = document.createElement('div'); rowI.className='seat-row';
+    for (let c=1;c<=4;c++) rowI.appendChild(createSeat('I'+c));
+    seatsContainer.appendChild(rowI);
+  }
+
+  function createSeat(label){
+    const d = document.createElement('div'); d.className='seat'; d.textContent=label; d.dataset.label=label;
+    d.addEventListener('click', ()=>{
+      if (d.classList.contains('booked')) return;
+      if (d.classList.contains('selected')) { d.classList.remove('selected'); sel.delete(label); }
+      else { d.classList.add('selected'); sel.add(label); }
+      updateInfo();
+    });
+    return d;
+  }
+
+  function updateInfo(){ document.getElementById('selCount').textContent = sel.size }
+
+  // Polling for bookings from data/db.json
+  async function loadBookings(){
+    try{
+      const res = await fetch('/data/db.json', {cache:'no-store'});
+      if (!res.ok) return;
+      const db = await res.json();
+      const bookings = (db.bookings || []).filter(b=>b.trip_id===tripId).map(b=>b.seat_label);
+      // mark booked seats
+      document.querySelectorAll('.seat').forEach(s=>{
+        const label = s.dataset.label;
+        if (bookings.includes(label)) { s.classList.add('booked'); s.classList.remove('selected'); sel.delete(label); }
+        else { s.classList.remove('booked'); }
+      });
+      updateInfo();
+    }catch(e){ console.error(e); }
+  }
+
+  // initial render & poll
+  renderEmpty();
+  loadBookings();
+  setInterval(loadBookings, 5000);
+
+  // refresh button
+  document.getElementById('refreshBtn').addEventListener('click', loadBookings);
+
+  // confirm -> generate SQL insert statements and show instructions
+  document.getElementById('confirmBtn').addEventListener('click', ()=>{
+    if (sel.size===0) { alert('Select at least one seat.'); return; }
+    const name = prompt('Passenger name (optional)') || '';
+    const inserts = [];
+    for (const s of sel) {
+      const safeName = name.replace(/'/g, "''");
+      inserts.push(`INSERT INTO bookings (trip_id, seat_label, passenger_name) VALUES ('${tripId}', '${s}', '${safeName}');`);
+    }
+    const sql = inserts.join('\n');
+    const box = document.getElementById('sql');
+    box.style.display='block';
+    box.textContent = sql + '\n\n-- After running these in phpMyAdmin, run export-db.ps1 locally to update the live site.';
+  });
+
+})();
+</script>
+</body>
+</html>
