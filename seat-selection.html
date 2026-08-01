@@ -28,6 +28,7 @@
       <div class="seats" id="seats"></div>
       <div class="controls">
         <button id="confirmBtn" class="btn">Request Booking (generate SQL)</button>
+        <button id="bookLocalBtn" class="btn" style="background:#0a7;">Book Locally (one-click)</button>
         <button id="refreshBtn" class="btn" style="background:#444">Refresh</button>
       </div>
       <div class="info" id="info">Selected: <span id="selCount">0</span></div>
@@ -122,6 +123,36 @@
     const box = document.getElementById('sql');
     box.style.display='block';
     box.textContent = sql + '\n\n-- After running these in phpMyAdmin, run export-db.ps1 locally to update the live site.';
+  });
+
+  // Local booking: POST to local PHP endpoint if available
+  document.getElementById('bookLocalBtn').addEventListener('click', async ()=>{
+    if (sel.size===0) { alert('Select at least one seat.'); return; }
+    if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      alert('Local booking only works when this page is served from localhost (XAMPP).');
+      return;
+    }
+    const name = prompt('Passenger name (optional)') || '';
+    const seatsArr = Array.from(sel);
+    try {
+      const res = await fetch('/local-book-seat.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trip_id: tripId, seats: seatsArr, passenger_name: name })
+      });
+      const json = await res.json();
+      if (json.success) {
+        alert('Booked ' + json.inserted + ' seats locally. Export pushed.');
+        // refresh bookings after short delay
+        setTimeout(loadBookings, 3000);
+      } else {
+        alert('Booking failed: ' + (json.error||'unknown'));
+        console.error(json);
+      }
+    } catch (err) {
+      alert('Local booking request failed. Are you running this from localhost?');
+      console.error(err);
+    }
   });
 
 })();
