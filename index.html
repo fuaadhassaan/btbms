@@ -16,6 +16,12 @@
         <button class="explore-btn" type="button" onclick="scrollToExplore()">Explore</button>
       </div>
     </section>
+    
+    <!-- LIVE DATA (from data/db.json) -->
+    <section class="live-data" id="live-data" aria-label="Live DB data">
+      <h2>Live Data (exported from phpMyAdmin)</h2>
+      <div id="db-results">No data loaded.</div>
+    </section>
 
     <!-- EXPLORE -->
     <section class="explore" id="explore" aria-label="Choose role">
@@ -38,6 +44,31 @@
     function scrollToExplore() {
       document.getElementById("explore").scrollIntoView({ behavior: "smooth" });
     }
+  </script>
+  <script>
+  // Fetch local-copied DB JSON (data/db.json) periodically and render
+  (function(){
+    const el = document.getElementById('db-results');
+    async function load() {
+      try {
+        const res = await fetch('/data/db.json', { cache: 'no-store' });
+        if (!res.ok) return el.textContent = 'No data available.';
+        const json = await res.json();
+        if (!Array.isArray(json)) return el.textContent = JSON.stringify(json, null, 2);
+        el.innerHTML = '';
+        json.forEach(row => {
+          const pre = document.createElement('pre');
+          pre.textContent = JSON.stringify(row, null, 2);
+          el.appendChild(pre);
+        });
+      } catch (err) {
+        el.textContent = 'Error loading data.';
+        console.error(err);
+      }
+    }
+    load();
+    setInterval(load, 15000);
+  })();
   </script>
   <script>
   (() => {
