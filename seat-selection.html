@@ -37,7 +37,10 @@
     </div>
   </main>
 
-<script>
+<script type="module">
+import { db } from './firebase-init.js';
+import { collection, query, where, onSnapshot, addDoc } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
+
 (function(){
   // build seat labels: rows A-H (3 seats each), row I (4 seats) = 28 seats
   const rows = ['A','B','C','D','E','F','G','H'];
@@ -85,14 +88,39 @@
 
   function updateInfo(){ document.getElementById('selCount').textContent = sel.size }
 
-  // Polling for bookings from data/db.json
-  async function loadBookings(){
+  // Firestore realtime bookings listener
+  async function setupRealtime(){
+    renderEmpty();
+    try{
+      const bookingsCol = collection(db, 'bookings');
+      const q = query(bookingsCol, where('trip_id', '==', tripId));
+      onSnapshot(q, snap=>{
+        const booked = new Set();
+        snap.forEach(doc=>{
+          const data = doc.data();
+          if (data && data.seat_label) booked.add(data.seat_label);
+        });
+        document.querySelectorAll('.seat').forEach(s=>{
+          const label = s.dataset.label;
+          if (booked.has(label)) { s.classList.add('booked'); s.classList.remove('selected'); sel.delete(label); }
+          else { s.classList.remove('booked'); }
+        });
+        updateInfo();
+      }, err=>{ console.error('snapshot err', err); });
+    }catch(e){
+      console.error('realtime setup failed', e);
+      // fallback to polling
+      loadBookingsPollFallback();
+    }
+  }
+
+  // Fallback polling if Firestore not available
+  async function loadBookingsPollFallback(){
     try{
       const res = await fetch('/data/db.json', {cache:'no-store'});
       if (!res.ok) return;
-      const db = await res.json();
-      const bookings = (db.bookings || []).filter(b=>b.trip_id===tripId).map(b=>b.seat_label);
-      // mark booked seats
+      const j = await res.json();
+      const bookings = (j.bookings || []).filter(b=>b.trip_id===tripId).map(b=>b.seat_label);
       document.querySelectorAll('.seat').forEach(s=>{
         const label = s.dataset.label;
         if (bookings.includes(label)) { s.classList.add('booked'); s.classList.remove('selected'); sel.delete(label); }
@@ -100,12 +128,11 @@
       });
       updateInfo();
     }catch(e){ console.error(e); }
+    setTimeout(loadBookingsPollFallback, 5000);
   }
 
-  // initial render & poll
-  renderEmpty();
-  loadBookings();
-  setInterval(loadBookings, 5000);
+  // start realtime listener (or fallback)
+  setupRealtime();
 
   // refresh button
   document.getElementById('refreshBtn').addEventListener('click', loadBookings);
@@ -125,34 +152,40 @@
     box.textContent = sql + '\n\n-- After running these in phpMyAdmin, run export-db.ps1 locally to update the live site.';
   });
 
-  // Local booking: POST to local PHP endpoint if available
+  // Local booking: POST to local PHP endpoint if available. If not local, write to Firestore directly.
   document.getElementById('bookLocalBtn').addEventListener('click', async ()=>{
     if (sel.size===0) { alert('Select at least one seat.'); return; }
-    if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-      alert('Local booking only works when this page is served from localhost (XAMPP).');
-      return;
-    }
     const name = prompt('Passenger name (optional)') || '';
     const seatsArr = Array.from(sel);
-    try {
-      const res = await fetch('/local-book-seat.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trip_id: tripId, seats: seatsArr, passenger_name: name })
-      });
-      const json = await res.json();
-      if (json.success) {
-        alert('Booked ' + json.inserted + ' seats locally. Export pushed.');
-        // refresh bookings after short delay
-        setTimeout(loadBookings, 3000);
-      } else {
-        alert('Booking failed: ' + (json.error||'unknown'));
-        console.error(json);
-      }
-    } catch (err) {
-      alert('Local booking request failed. Are you running this from localhost?');
-      console.error(err);
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      try {
+        const res = await fetch('/local-book-seat.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trip_id: tripId, seats: seatsArr, passenger_name: name })
+        });
+        const json = await res.json();
+        if (json.success) {
+          alert('Booked ' + json.inserted + ' seats locally. Export pushed.');
+          setTimeout(loadBookingsPollFallback, 3000);
+        } else { alert('Booking failed: ' + (json.error||'unknown')); console.error(json); }
+      } catch (err) { alert('Local booking request failed. Are you running this from localhost?'); console.error(err); }
+      return;
     }
+
+    // Not local: write bookings to Firestore
+    try{
+      const bookingsCol = collection(db, 'bookings');
+      document.getElementById('bookLocalBtn').disabled = true;
+      for (const s of seatsArr) {
+        await addDoc(bookingsCol, { trip_id: tripId, seat_label: s, passenger_name: name, created_at: new Date().toISOString() });
+      }
+      alert('Booked ' + seatsArr.length + ' seats live. Changes will appear shortly.');
+      // clear selection
+      sel.clear(); document.querySelectorAll('.seat.selected').forEach(e=>e.classList.remove('selected'));
+      updateInfo();
+    }catch(err){ alert('Live booking failed: '+err.message); console.error(err); }
+    finally { document.getElementById('bookLocalBtn').disabled = false; }
   });
 
 })();

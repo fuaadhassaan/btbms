@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Migrate to Firestore</title>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js';
+    import { getFirestore, doc, setDoc, collection, addDoc } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDF2L2QCs9g0KGzyLGp03aQTaZ6A20zdPk",
+      authDomain: "btbms-b79f0.firebaseapp.com",
+      projectId: "btbms-b79f0",
+      storageBucket: "btbms-b79f0.firebasestorage.app",
+      messagingSenderId: "1070711151652",
+      appId: "1:1070711151652:web:93bab4d9f4b49f42184cb1",
+      measurementId: "G-718G445C6N"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function migrate(){
+      document.getElementById('status').textContent = 'Loading data/db.json...';
+      const res = await fetch('/data/db.json');
+      if (!res.ok) { document.getElementById('status').textContent = 'No data/db.json found.'; return; }
+      const data = await res.json();
+      const buses = data.buses || [];
+      const trips = data.trips || [];
+      const bookings = data.bookings || [];
+
+      document.getElementById('status').textContent = `Found buses:${buses.length}, trips:${trips.length}, bookings:${bookings.length}`;
+
+      // write buses using bus_id as doc id
+      for (const b of buses) {
+        await setDoc(doc(db, 'buses', b.bus_id), b);
+      }
+      // write trips using trip_id
+      for (const t of trips) {
+        await setDoc(doc(db, 'trips', t.trip_id), t);
+      }
+      // write bookings as auto-id docs
+      for (const bk of bookings) {
+        await addDoc(collection(db, 'bookings'), bk);
+      }
+
+      document.getElementById('status').textContent = 'Migration complete — wrote collections to Firestore.';
+    }
+
+    window.migrate = migrate;
+  </script>
+  <style>body{font-family:sans-serif;padding:30px;background:#111;color:#fff}</style>
+</head>
+<body>
+  <h1>Migrate data/db.json → Firestore</h1>
+  <p id="status">Ready</p>
+  <p><button onclick="migrate()">Start Migration</button></p>
+  <p>Note: Firestore rules currently allow writes. After migration tighten rules for production.</p>
+</body>
+</html>
