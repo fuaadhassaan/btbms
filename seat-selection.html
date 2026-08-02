@@ -2,193 +2,627 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Seat Selection</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BTBMS - Passenger Booking</title>
   <link rel="stylesheet" href="index.css">
   <style>
-    body, html { height:100%; }
-    .seat-area { max-width:900px; margin:40px auto; color:white; }
-    .screen { text-align:center; margin-bottom:18px; color:#ddd }
-    .seats { display:flex; flex-direction:column; gap:10px; align-items:center }
-    .seat-row { display:flex; gap:14px; }
-    .seat { width:58px; height:58px; border-radius:6px; background:#fff; color:#000; display:flex; align-items:center; justify-content:center; cursor:pointer; font-weight:600 }
-    .seat.booked { background:#666; color:#fff; cursor:not-allowed; }
-    .seat.selected { background:green; color:white }
-    .seat.gap { width:22px; visibility:hidden }
-    .controls { margin-top:18px; display:flex; gap:12px; align-items:center }
-    .btn { padding:10px 16px; background:red; border:none; color:white; border-radius:6px; cursor:pointer }
-    .info { margin-top:12px; color:#ccc }
-    .sqlbox { white-space:pre-wrap; background:#111; color:#9f9; padding:12px; border-radius:6px; margin-top:10px }
+    :root {
+      --panel: rgba(15, 15, 18, 0.92);
+      --panel-2: rgba(28, 28, 34, 0.98);
+      --accent: #00c853;
+      --accent-2: #11a8fd;
+      --text: #f5f7fb;
+      --muted: #b8c0cc;
+      --danger: #ff5d5d;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(17, 168, 253, 0.2), transparent 28%),
+        radial-gradient(circle at top right, rgba(0, 200, 83, 0.16), transparent 30%),
+        #050505;
+    }
+
+    .booking-shell {
+      width: min(1400px, calc(100% - 32px));
+      margin: 24px auto 40px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .topbar {
+      width: min(1400px, calc(100% - 32px));
+      margin: 18px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .topbar-left, .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+    .home-btn, .refresh-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 96px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 700;
+      border: 0;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+      box-shadow: var(--shadow);
+    }
+
+    .refresh-btn { background: linear-gradient(135deg, #444, #222); }
+
+    .clock-pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.82);
+      color: #fff;
+      font: 600 14px/1.1 Arial, sans-serif;
+      letter-spacing: 0.08em;
+      box-shadow: var(--shadow);
+      user-select: none;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .layout-card {
+      padding: 24px;
+    }
+
+    .details-card {
+      padding: 24px;
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      position: sticky;
+      top: 16px;
+    }
+
+    .seat-layout-title {
+      margin: 0 0 6px;
+      font-size: 26px;
+    }
+
+    .trip-id {
+      margin: 0 0 18px;
+      color: var(--muted);
+    }
+
+    .seat-layout-label {
+      text-align: center;
+      margin: 8px 0 18px;
+      font-size: 16px;
+      letter-spacing: 0.15em;
+      color: #d9e3f0;
+    }
+
+    .seat-grid-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding-bottom: 12px;
+    }
+
+    .seat-row {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .seat {
+      width: 58px;
+      height: 58px;
+      border: 0;
+      border-radius: 8px;
+      background: #f7f7fb;
+      color: #111;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease, opacity 0.12s ease;
+    }
+
+    .seat:hover { transform: translateY(-1px); }
+    .seat.booked { background: #686868; color: #fff; cursor: not-allowed; opacity: 0.82; }
+    .seat.selected { background: var(--accent); color: white; }
+    .seat:disabled { cursor: not-allowed; }
+    .seat.gap {
+      visibility: hidden;
+      width: 22px;
+      box-shadow: none;
+      background: transparent;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      justify-content: center;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend i {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      display: inline-block;
+    }
+
+    .legend .free { background: #f7f7fb; }
+    .legend .sel { background: var(--accent); }
+    .legend .bok { background: #686868; }
+
+    .count-line {
+      margin: 18px 0 0;
+      color: #d6dbe3;
+      font-weight: 700;
+    }
+
+    .details-note {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .hidden { display: none !important; }
+
+    .details-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .passenger-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .passenger-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .passenger-card h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .field label {
+      font-size: 13px;
+      color: #d8deea;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0, 0, 0, 0.35);
+      color: #fff;
+      outline: none;
+    }
+
+    .field input::placeholder { color: #9fa8b6; }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px 18px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(135deg, #14b8a6, #22c55e);
+      box-shadow: var(--shadow);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .status {
+      min-height: 24px;
+      color: #d6dbe3;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .error {
+      color: #ffb4b4;
+    }
+
+    @media (max-width: 1100px) {
+      .booking-shell { grid-template-columns: 1fr; }
+      .details-card { position: static; }
+    }
+
+    @media (max-width: 760px) {
+      .booking-shell, .topbar { width: calc(100% - 20px); }
+      .layout-card, .details-card { padding: 18px; }
+      .seat { width: 48px; height: 48px; }
+      .seat-row { gap: 10px; }
+      .seat-layout-title { font-size: 22px; }
+    }
   </style>
 </head>
 <body>
-  <main class="main-section">
-    <div class="seat-area">
-      <div class="screen">SCREEN</div>
-      <h2 id="title">Select seats</h2>
-      <div class="seats" id="seats"></div>
-      <div class="controls">
-        <button id="confirmBtn" class="btn">Request Booking (generate SQL)</button>
-        <button id="bookLocalBtn" class="btn" style="background:#0a7;">Book Locally (one-click)</button>
-        <button id="refreshBtn" class="btn" style="background:#444">Refresh</button>
-      </div>
-      <div class="info" id="info">Selected: <span id="selCount">0</span></div>
-      <div id="sql" class="sqlbox" style="display:none"></div>
-      <p class="info">Instructions: use the live booking button for realtime updates, or run the generated SQL in phpMyAdmin and then run <code>export-db.ps1</code> locally to refresh the static export.</p>
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="index.html" class="home-btn">Home</a>
+      <button type="button" id="refreshBtn" class="refresh-btn">Refresh</button>
     </div>
+    <div class="topbar-right">
+      <div id="clock" class="clock-pill" aria-live="polite">--:--:--</div>
+    </div>
+  </div>
+
+  <main class="booking-shell">
+    <section class="card layout-card" aria-label="Seat layout">
+      <h1 class="seat-layout-title">Passenger Booking</h1>
+      <p id="tripMeta" class="trip-id">Select seats to continue.</p>
+      <div class="seat-layout-label">SEAT LAYOUT</div>
+      <div class="seat-grid-wrap" id="seats"></div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="free"></i>Available</span>
+        <span><i class="sel"></i>Selected</span>
+        <span><i class="bok"></i>Booked</span>
+      </div>
+      <p class="count-line">Selected seats: <span id="selCount">0</span>/4</p>
+    </section>
+
+    <aside class="card details-card" aria-label="Passenger details">
+      <h2 style="margin-top:0">Passenger Details</h2>
+      <p class="details-note">Passenger fields appear as seats are selected. You can book up to 4 seats at a time.</p>
+      <form id="bookingForm" class="details-form">
+        <div id="passengerList" class="passenger-list"></div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="name@example.com" required />
+        </div>
+
+        <div class="field">
+          <label for="contact">Contact Number</label>
+          <input id="contact" name="contact" type="tel" placeholder="01XXXXXXXXX" required />
+        </div>
+
+        <div class="field">
+          <label for="paymentMethod">Payment Method</label>
+          <select id="paymentMethod" name="paymentMethod" required>
+            <option value="">Select payment method</option>
+            <option value="cash">Cash</option>
+            <option value="bkash">Bkash</option>
+            <option value="card">Card</option>
+          </select>
+        </div>
+
+        <button id="submitBtn" class="submit-btn" type="submit" disabled>Submit and Book Your Ticket(s)</button>
+        <div id="status" class="status" aria-live="polite"></div>
+      </form>
+    </aside>
   </main>
 
-<script type="module">
-import { db } from './firebase-init.js';
-import { collection, query, where, onSnapshot, addDoc } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
+  <script type="module">
+    import { db } from './firebase-init.js';
+    import {
+      collection,
+      query,
+      where,
+      onSnapshot,
+      doc,
+      getDoc,
+      getDocs,
+      setDoc,
+      updateDoc,
+      increment,
+      runTransaction,
+      serverTimestamp,
+    } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
 
-(function(){
-  // build seat labels: rows A-H (3 seats each), row I (4 seats) = 28 seats
-  const rows = ['A','B','C','D','E','F','G','H'];
-  const seats = [];
-  for (const r of rows) {
-    for (let c=1;c<=3;c++) seats.push(r+c);
-  }
-  // row I with 4 seats
-  for (let c=1;c<=4;c++) seats.push('I'+c);
+    const tripId = new URLSearchParams(window.location.search).get('trip_id') || 'TR1';
+    const seatsContainer = document.getElementById('seats');
+    const passengerList = document.getElementById('passengerList');
+    const selCount = document.getElementById('selCount');
+    const submitBtn = document.getElementById('submitBtn');
+    const statusEl = document.getElementById('status');
+    const tripMeta = document.getElementById('tripMeta');
+    const maxSeats = 4;
+    const selectedSeats = [];
+    const seatButtons = new Map();
+    let bookedSeats = new Set();
+    let totalAvailableSeats = null;
+    let tripDocData = null;
+    let bookingsUnsub = null;
 
-  const seatsContainer = document.getElementById('seats');
-  const sel = new Set();
-  const tripId = new URLSearchParams(window.location.search).get('trip_id') || 'TR1';
-  document.getElementById('title').textContent = 'Select seats for ' + tripId;
+    tripMeta.textContent = `Trip ID: ${tripId}`;
 
-  // create rows visually: we want rows labeled A..I stacked
-  function renderEmpty() {
-    seatsContainer.innerHTML = '';
-    // rows A-H
-    for (const r of rows) {
-      const rowDiv = document.createElement('div'); rowDiv.className='seat-row';
-      // seats 1, gap, 2,3? user wanted gap between A1 and A2: make small gap after first seat
-      const s1 = createSeat(r+'1'); rowDiv.appendChild(s1);
-      const gap = document.createElement('div'); gap.className='seat gap'; gap.style.visibility='hidden'; gap.style.width='22px'; rowDiv.appendChild(gap);
-      const s2 = createSeat(r+'2'); rowDiv.appendChild(s2);
-      const s3 = createSeat(r+'3'); rowDiv.appendChild(s3);
-      seatsContainer.appendChild(rowDiv);
-    }
-    // row I with 4 seats
-    const rowI = document.createElement('div'); rowI.className='seat-row';
-    for (let c=1;c<=4;c++) rowI.appendChild(createSeat('I'+c));
-    seatsContainer.appendChild(rowI);
-  }
+    function buildSeats() {
+      seatsContainer.innerHTML = '';
+      const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
-  function createSeat(label){
-    const d = document.createElement('div'); d.className='seat'; d.textContent=label; d.dataset.label=label;
-    d.addEventListener('click', ()=>{
-      if (d.classList.contains('booked')) return;
-      if (d.classList.contains('selected')) { d.classList.remove('selected'); sel.delete(label); }
-      else { d.classList.add('selected'); sel.add(label); }
-      updateInfo();
-    });
-    return d;
-  }
-
-  function updateInfo(){ document.getElementById('selCount').textContent = sel.size }
-
-  // Firestore realtime bookings listener
-  async function setupRealtime(){
-    renderEmpty();
-    try{
-      const bookingsCol = collection(db, 'bookings');
-      const q = query(bookingsCol, where('trip_id', '==', tripId));
-      onSnapshot(q, snap=>{
-        const booked = new Set();
-        snap.forEach(doc=>{
-          const data = doc.data();
-          if (data && data.seat_label) booked.add(data.seat_label);
-        });
-        document.querySelectorAll('.seat').forEach(s=>{
-          const label = s.dataset.label;
-          if (booked.has(label)) { s.classList.add('booked'); s.classList.remove('selected'); sel.delete(label); }
-          else { s.classList.remove('booked'); }
-        });
-        updateInfo();
-      }, err=>{ console.error('snapshot err', err); });
-    }catch(e){
-      console.error('realtime setup failed', e);
-      // fallback to polling
-      loadBookingsPollFallback();
-    }
-  }
-
-  // Fallback polling if Firestore not available
-  async function loadBookingsPollFallback(){
-    try{
-      const res = await fetch('/data/db.json', {cache:'no-store'});
-      if (!res.ok) return;
-      const j = await res.json();
-      const bookings = (j.bookings || []).filter(b=>b.trip_id===tripId).map(b=>b.seat_label);
-      document.querySelectorAll('.seat').forEach(s=>{
-        const label = s.dataset.label;
-        if (bookings.includes(label)) { s.classList.add('booked'); s.classList.remove('selected'); sel.delete(label); }
-        else { s.classList.remove('booked'); }
-      });
-      updateInfo();
-    }catch(e){ console.error(e); }
-    setTimeout(loadBookingsPollFallback, 5000);
-  }
-
-  // start realtime listener (or fallback)
-  setupRealtime();
-
-  // refresh button
-  document.getElementById('refreshBtn').addEventListener('click', loadBookingsPollFallback);
-
-  // confirm -> generate SQL insert statements and show instructions
-  document.getElementById('confirmBtn').addEventListener('click', ()=>{
-    if (sel.size===0) { alert('Select at least one seat.'); return; }
-    const name = prompt('Passenger name (optional)') || '';
-    const inserts = [];
-    for (const s of sel) {
-      const safeName = name.replace(/'/g, "''");
-      inserts.push(`INSERT INTO bookings (trip_id, seat_label, passenger_name) VALUES ('${tripId}', '${s}', '${safeName}');`);
-    }
-    const sql = inserts.join('\n');
-    const box = document.getElementById('sql');
-    box.style.display='block';
-    box.textContent = sql + '\n\n-- After running these in phpMyAdmin, run export-db.ps1 locally to update the live site.';
-  });
-
-  // Local booking: POST to local PHP endpoint if available. If not local, write to Firestore directly.
-  document.getElementById('bookLocalBtn').addEventListener('click', async ()=>{
-    if (sel.size===0) { alert('Select at least one seat.'); return; }
-    const name = prompt('Passenger name (optional)') || '';
-    const seatsArr = Array.from(sel);
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      try {
-        const res = await fetch('/local-book-seat.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ trip_id: tripId, seats: seatsArr, passenger_name: name })
-        });
-        const json = await res.json();
-        if (json.success) {
-          alert('Booked ' + json.inserted + ' seats locally. Export pushed.');
-          setTimeout(loadBookingsPollFallback, 3000);
-        } else { alert('Booking failed: ' + (json.error||'unknown')); console.error(json); }
-      } catch (err) { alert('Local booking request failed. Are you running this from localhost?'); console.error(err); }
-      return;
-    }
-
-    // Not local: write bookings to Firestore
-    try{
-      const bookingsCol = collection(db, 'bookings');
-      document.getElementById('bookLocalBtn').disabled = true;
-      for (const s of seatsArr) {
-        await addDoc(bookingsCol, { trip_id: tripId, seat_label: s, passenger_name: name, created_at: new Date().toISOString() });
+      for (const row of rows) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'seat-row';
+        rowEl.appendChild(createSeat(row + '1'));
+        const gap = document.createElement('div');
+        gap.className = 'seat gap';
+        rowEl.appendChild(gap);
+        rowEl.appendChild(createSeat(row + '2'));
+        rowEl.appendChild(createSeat(row + '3'));
+        seatsContainer.appendChild(rowEl);
       }
-      alert('Booked ' + seatsArr.length + ' seats live. Changes will appear shortly.');
-      // clear selection
-      sel.clear(); document.querySelectorAll('.seat.selected').forEach(e=>e.classList.remove('selected'));
-      updateInfo();
-    }catch(err){ alert('Live booking failed: '+err.message); console.error(err); }
-    finally { document.getElementById('bookLocalBtn').disabled = false; }
-  });
 
-})();
-</script>
+      const rowI = document.createElement('div');
+      rowI.className = 'seat-row';
+      rowI.appendChild(createSeat('I1'));
+      rowI.appendChild(createSeat('I2'));
+      rowI.appendChild(createSeat('I3'));
+      rowI.appendChild(createSeat('I4'));
+      seatsContainer.appendChild(rowI);
+    }
+
+    function createSeat(label) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'seat';
+      button.textContent = label;
+      button.dataset.label = label;
+      button.addEventListener('click', () => toggleSeat(label));
+      seatButtons.set(label, button);
+      return button;
+    }
+
+    function syncSeatStyles() {
+      for (const [label, button] of seatButtons.entries()) {
+        button.classList.toggle('selected', selectedSeats.includes(label));
+        button.classList.toggle('booked', bookedSeats.has(label));
+        const unselectable = bookedSeats.has(label) || (selectedSeats.length >= maxSeats && !selectedSeats.includes(label));
+        button.disabled = bookedSeats.has(label) || unselectable;
+      }
+      selCount.textContent = String(selectedSeats.length);
+      submitBtn.disabled = selectedSeats.length === 0;
+    }
+
+    function toggleSeat(label) {
+      if (bookedSeats.has(label)) return;
+      const index = selectedSeats.indexOf(label);
+      if (index >= 0) {
+        selectedSeats.splice(index, 1);
+      } else {
+        if (selectedSeats.length >= maxSeats) {
+          setStatus(`You can select up to ${maxSeats} seats at a time.`, true);
+          return;
+        }
+        selectedSeats.push(label);
+      }
+      renderPassengerFields();
+      syncSeatStyles();
+    }
+
+    function renderPassengerFields() {
+      passengerList.innerHTML = '';
+      selectedSeats.forEach((seatLabel, index) => {
+        const card = document.createElement('div');
+        card.className = 'passenger-card';
+        card.innerHTML = `
+          <h3>Passenger ${index + 1} - Seat ${seatLabel}</h3>
+          <div class="field">
+            <label for="passengerName${index}">Passenger ${index + 1} Name</label>
+            <input id="passengerName${index}" name="passengerName${index}" type="text" placeholder="Passenger ${index + 1}" required />
+          </div>
+        `;
+        passengerList.appendChild(card);
+      });
+    }
+
+    function setStatus(message, isError = false) {
+      statusEl.textContent = message;
+      statusEl.classList.toggle('error', isError);
+    }
+
+    function formatClock(date) {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Dhaka',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).format(date);
+    }
+
+    function startClock() {
+      const clock = document.getElementById('clock');
+      const tick = () => { clock.textContent = formatClock(new Date()); };
+      tick();
+      window.setInterval(tick, 1000);
+    }
+
+    async function loadTripMeta() {
+      try {
+        const tripRef = doc(db, 'trips', tripId);
+        const snap = await getDoc(tripRef);
+        if (snap.exists()) {
+          tripDocData = snap.data();
+          const available = Number(tripDocData.available_seats ?? 0);
+          totalAvailableSeats = available;
+          const origin = tripDocData.origin || 'Unknown';
+          const destination = tripDocData.destination || 'Unknown';
+          tripMeta.textContent = `Trip ID: ${tripId} | ${origin} to ${destination} | Available seats: ${available}`;
+        }
+      } catch (error) {
+        console.error('Trip load failed', error);
+      }
+    }
+
+    function listenBookings() {
+      const bookingsQuery = query(collection(db, 'bookings'), where('trip_id', '==', tripId));
+      bookingsUnsub = onSnapshot(bookingsQuery, snap => {
+        bookedSeats = new Set();
+        snap.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data && data.seat_label) bookedSeats.add(data.seat_label);
+        });
+        for (let i = selectedSeats.length - 1; i >= 0; i -= 1) {
+          if (bookedSeats.has(selectedSeats[i])) {
+            selectedSeats.splice(i, 1);
+          }
+        }
+        renderPassengerFields();
+        syncSeatStyles();
+        if (tripDocData) {
+          tripMeta.textContent = `Trip ID: ${tripId} | ${tripDocData.origin || 'Unknown'} to ${tripDocData.destination || 'Unknown'} | Available seats: ${tripDocData.available_seats ?? 0}`;
+        }
+      }, error => {
+        console.error('Booking listener failed', error);
+        setStatus('Live updates could not be loaded. Refresh to retry.', true);
+      });
+    }
+
+    async function refreshAvailability() {
+      setStatus('Refreshing seat availability...');
+      await loadTripMeta();
+      renderPassengerFields();
+      syncSeatStyles();
+      setStatus('Availability refreshed.');
+    }
+
+    async function createBookingTransaction(selectedLabels, passengerNames, email, contact, paymentMethod) {
+      const tripRef = doc(db, 'trips', tripId);
+      const bookingRefs = selectedLabels.map(label => doc(db, 'bookings', `${tripId}_${label}`));
+
+      return runTransaction(db, async transaction => {
+        const tripSnap = await transaction.get(tripRef);
+        if (!tripSnap.exists()) {
+          throw new Error('Trip not found.');
+        }
+
+        const tripData = tripSnap.data();
+        const availableSeats = Number(tripData.available_seats ?? 0);
+        if (availableSeats < selectedLabels.length) {
+          throw new Error('Not enough available seats remain for this booking.');
+        }
+
+        for (const bookingRef of bookingRefs) {
+          const bookingSnap = await transaction.get(bookingRef);
+          if (bookingSnap.exists()) {
+            throw new Error('One or more selected seats were just booked by another user.');
+          }
+        }
+
+        bookingRefs.forEach((bookingRef, index) => {
+          transaction.set(bookingRef, {
+            trip_id: tripId,
+            seat_label: selectedLabels[index],
+            passenger_name: passengerNames[index],
+            email,
+            contact_number: contact,
+            payment_method: paymentMethod,
+            created_at: serverTimestamp(),
+          });
+        });
+
+        transaction.update(tripRef, { available_seats: increment(-selectedLabels.length) });
+      });
+    }
+
+    async function submitBooking(event) {
+      event.preventDefault();
+      if (selectedSeats.length === 0) {
+        setStatus('Select at least one seat first.', true);
+        return;
+      }
+
+      const passengerNames = selectedSeats.map((_, index) => {
+        const input = document.getElementById(`passengerName${index}`);
+        return (input?.value || '').trim();
+      });
+
+      if (passengerNames.some(name => !name)) {
+        setStatus('Fill every passenger name before submitting.', true);
+        return;
+      }
+
+      const email = document.getElementById('email').value.trim();
+      const contact = document.getElementById('contact').value.trim();
+      const paymentMethod = document.getElementById('paymentMethod').value;
+
+      if (!email || !contact || !paymentMethod) {
+        setStatus('Email, contact number, and payment method are required.', true);
+        return;
+      }
+
+      const selectedLabels = [...selectedSeats];
+      submitBtn.disabled = true;
+      setStatus('Booking seats...');
+
+      try {
+        await createBookingTransaction(selectedLabels, passengerNames, email, contact, paymentMethod);
+
+        selectedSeats.length = 0;
+        passengerList.innerHTML = '';
+        renderPassengerFields();
+        syncSeatStyles();
+        await loadTripMeta();
+        setStatus('Your ticket(s) have been booked successfully.');
+        document.getElementById('bookingForm').reset();
+      } catch (error) {
+        console.error('Booking failed', error);
+        setStatus(error.message || 'Booking failed. Please try again.', true);
+      } finally {
+        submitBtn.disabled = selectedSeats.length === 0;
+      }
+    }
+
+    document.getElementById('bookingForm').addEventListener('submit', submitBooking);
+    document.getElementById('refreshBtn').addEventListener('click', refreshAvailability);
+
+    buildSeats();
+    renderPassengerFields();
+    syncSeatStyles();
+    startClock();
+    loadTripMeta();
+    listenBookings();
+    setInterval(loadTripMeta, 30000);
+  </script>
 </body>
 </html>

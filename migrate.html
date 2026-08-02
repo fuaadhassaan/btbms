@@ -39,9 +39,14 @@
       for (const t of trips) {
         await setDoc(doc(db, 'trips', t.trip_id), t);
       }
-      // write bookings as auto-id docs
+      // write bookings using deterministic ids when possible so future duplicate-seat checks remain reliable
       for (const bk of bookings) {
-        await addDoc(collection(db, 'bookings'), bk);
+        const bookingId = bk.trip_id && bk.seat_label ? `${bk.trip_id}_${bk.seat_label}` : null;
+        if (bookingId) {
+          await setDoc(doc(db, 'bookings', bookingId), bk);
+        } else {
+          await addDoc(collection(db, 'bookings'), bk);
+        }
       }
 
       document.getElementById('status').textContent = 'Migration complete — wrote collections to Firestore.';
