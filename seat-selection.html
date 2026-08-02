@@ -262,6 +262,12 @@
       cursor: not-allowed;
     }
 
+    .print-btn {
+      width: 100%;
+      margin-top: 10px;
+      display: none;
+    }
+
     .status {
       min-height: 24px;
       color: #d6dbe3;
@@ -391,6 +397,7 @@
         </div>
 
         <button id="submitBtn" class="submit-btn" type="submit" disabled>Submit and Book Your Ticket(s)</button>
+        <button id="printBtn" type="button" class="print-btn">Download PDF</button>
         <div id="status" class="status" aria-live="polite"></div>
       </form>
     </aside>
@@ -522,6 +529,7 @@
       if (!receipt) {
         receiptCard.style.display = 'none';
         receiptBody.innerHTML = '';
+        printBtn.style.display = 'none';
         return;
       }
 
@@ -535,6 +543,7 @@
         <div class="receipt-row"><strong>Payment</strong><span>${receipt.paymentMethod}</span></div>
       `;
       receiptCard.style.display = 'block';
+      printBtn.style.display = 'inline-flex';
     }
 
     function formatClock(date) {
