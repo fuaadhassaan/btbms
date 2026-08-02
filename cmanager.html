@@ -1,447 +1,412 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-  <meta charset="UTF-8" />
-  <title>Counter Manager</title>
-  <link rel="stylesheet" href="cmanager.css" />
+  <meta charset='UTF-8' />
+  <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+  <title>BTBMS Counter Manager</title>
+  <link rel='stylesheet' href='cmanager.css' />
 </head>
 <body>
-<div id="login-section" class="centered">
-  <h2>Counter Manager Login</h2>
-  <form method="post" action="cmanager.php" id="loginForm">
-    <label for="userid">User ID</label><br />
-    <input type="text" name="userid" placeholder="User ID" required /><br />
-    <label for="password">Password</label><br />
-    <input type="password" name="password" placeholder="Password" required /><br />
-    <button type="submit" name="login">Login</button>
-    <button type="button" id="loginHomeBtn" class="btn-red">Home</button>
-  </form>
-</div>
-
-<div id="dashboard-section" style="display:none;">
-  <div class="sidebar">
-    <button id="homeBtn">Home</button>
-    <button id="logoutBtn">Logout</button>
-    <hr style="border:0; border-top:1px solid #333; margin:10px 0;">
-
-    <span style="color:#00aaff; padding-left:24px;">Manage Trips</span>
-    <button onclick="showSection('manageTrips')">Overview Trip Details</button>
-    <button onclick="showSection('searchTrip')">Search Trip</button>
-
-    <span style="color:#00aaff; padding-left:24px;">Manage Ticket</span>
-    <button onclick="showSection('overview')">Overview Ticket Details</button>
-    <button onclick="showSection('create')">Create Ticket</button>
-    <button onclick="showSection('update')">Update Ticket</button>
-    <button onclick="showSection('delete')">Delete Ticket</button>
-
-    <span style="color:#00aaff; padding-left:24px;">Request to Admin</span>
-    <button onclick="showSection('request-admin')">Request to Admin</button>
-  </div>
-
-  <div class="main-content">
-    <!-- Overview Trip Details -->
-    <div class="content-section" id="manageTrips" style="display:none;">
-      <h2>Overview Trip Details</h2>
-      <div id="tripsTableContainer">
-        <table id="tripsTable" class="styled-table">
-          <thead>
-            <tr>
-              <th>Trip ID</th>
-              <th>Date</th>
-              <th>Departure Time</th>
-              <th>Bus ID</th>
-              <th>From</th>
-              <th>To</th>
-              <th>Fare</th>
-              <th>Arrival</th>
-              <th>Available Seats</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+  <div class='page-overlay'></div>
+  <main class='app-root'>
+    <section id='loginScreen' class='screen screen--active'>
+      <div class='login-panel'>
+        <div class='brand-band'>
+          <span>BTBMS Counter Manager</span>
+        </div>
+        <h1>Manager Login</h1>
+        <p class='hint'>Use ID <strong>AD1</strong> and password <strong>141</strong></p>
+        <form id='loginForm' class='form-stack'>
+          <label for='userid'>User ID</label>
+          <input id='userid' name='userid' type='text' placeholder='AD1' autocomplete='username' required />
+          <label for='password'>Password</label>
+          <input id='password' name='password' type='password' placeholder='141' autocomplete='current-password' required />
+          <button type='submit' class='button button--primary'>Login</button>
+        </form>
+        <p id='loginError' class='message'></p>
       </div>
-    </div>
+    </section>
 
-    <!-- NEW: Search Trip (by Trip ID) -->
-    <div class="content-section" id="searchTrip" style="display:none;">
-      <h2>Search Trip</h2>
-      <form id="searchTripForm" style="margin-bottom:14px;">
-        <label>Trip ID</label><br/>
-        <input type="text" name="trip_id" placeholder="Trip ID (e.g., TR1)" required />
-        <button type="submit">Search</button>
-        <button type="button" id="searchTripResetBtn">Reset Values</button>
-      </form>
-      <div id="searchTripResult"></div>
-    </div>
+    <section id='appScreen' class='screen'>
+      <aside class='sidebar'>
+        <div class='sidebar-brand'>
+          <span>Counter Manager</span>
+        </div>
+        <button id='navDashboard' class='sidebar-link active'>Dashboard</button>
+        <button id='navTrips' class='sidebar-link'>View Trips</button>
+        <button id='navTickets' class='sidebar-link'>Manage Tickets</button>
+        <button id='navRequests' class='sidebar-link'>Create Requests</button>
+        <div class='sidebar-footer'>
+          <button id='logoutBtn' class='button button--ghost'>Logout</button>
+        </div>
+      </aside>
 
-    <!-- UPDATED: Overview Ticket Details (table view + filter) -->
-    <div class="content-section" id="overview" style="display:none;">
-      <h2>Overview Ticket Details</h2>
-      <form id="overviewTicketsForm" style="margin-bottom:12px;">
-        <label>Filter by Trip ID (optional)</label><br/>
-        <input type="text" name="trip_id" placeholder="Filter by Trip ID (optional)" />
-        <button type="submit">Show</button>
-        <button type="button" id="showAllTicketsBtn">Show All</button>
-        <button type="button" id="resetTicketsBtn">Reset</button>
-      </form>
+      <section class='panel'>
+        <header class='panel-header'>
+          <div>
+            <p class='eyebrow'>Signed in as</p>
+            <h2 id='dashboardGreeting'>Welcome back</h2>
+          </div>
+          <div class='status-pill' id='statusBanner'>Realtime status: offline</div>
+        </header>
 
-      <table id="ticketsTable" class="styled-table">
-        <thead>
-          <tr>
-            <th>ticket_id</th>
-            <th>trip_id</th>
-            <th>seat_number</th>
-            <th>passenger_name</th>
-            <th>phone</th>
-            <th>email</th>
-            <th>address</th>
-            <th>boarding_point</th>
-            <th>dropping_point</th>
-            <th>payment_method</th>
-            <th>payment_info</th>
-            <th>booking_time</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+        <div id='dashboardView' class='view-section view-active'>
+          <div class='stats-grid'>
+            <article class='stat-card stat-card--red'>
+              <h3>Today's Trips</h3>
+              <p id='todaysTrips'>0</p>
+            </article>
+            <article class='stat-card stat-card--dark'>
+              <h3>Completed Trips</h3>
+              <p id='completedTrips'>0</p>
+            </article>
+            <article class='stat-card stat-card--dark'>
+              <h3>Total Booked Seats</h3>
+              <p id='bookedSeats'>0</p>
+            </article>
+            <article class='stat-card stat-card--dark'>
+              <h3>Total Available Seats</h3>
+              <p id='availableSeats'>0</p>
+            </article>
+            <article class='stat-card stat-card--red'>
+              <h3>Total Earnings</h3>
+              <p id='totalEarnings'>0 BDT</p>
+            </article>
+            <article class='stat-card stat-card--dark'>
+              <h3>Total Requests</h3>
+              <p id='totalRequests'>0</p>
+            </article>
+          </div>
+          <div class='panel-block'>
+            <h3>Counter Manager Summary</h3>
+            <p class='panel-copy'>Use the left menu to manage trips, ticket sales, and admin requests. Real-time updates refresh automatically in seconds whenever Firestore changes.</p>
+          </div>
+        </div>
 
-    <!-- Create Ticket -->
-    <div class="content-section" id="create" style="display:none;">
-      <h2>Create Ticket</h2>
-      <form id="createForm">
-        <label>Trip ID</label><br/>
-        <input type="text" name="trip_id" placeholder="Trip ID" required /><br/>
-        <label>Seat Number</label><br/>
-        <input type="text" name="seat_number" placeholder="Seat Number" required /><br/>
-        <label>Passenger Name</label><br/>
-        <input type="text" name="passenger_name" placeholder="Passenger Name" required /><br/>
-        <label>Phone</label><br/>
-        <input type="text" name="phone" placeholder="Phone" required /><br/>
-        <label>Email</label><br/>
-        <input type="email" name="email" placeholder="Email" required /><br/>
-        <label>Address</label><br/>
-        <input type="text" name="address" placeholder="Address" required /><br/>
-        <label>Boarding Point</label><br/>
-        <input type="text" name="boarding_point" placeholder="Boarding Point" required /><br/>
-        <label>Dropping Point</label><br/>
-        <input type="text" name="dropping_point" placeholder="Dropping Point" required /><br/>
-        <select name="payment_method" required><br/>
-          <option value="">Payment Method</option>
-          <option value="Bkash">Bkash</option>
-          <option value="Card">Card</option>
-        </select>
-        <input type="text" name="payment_info" placeholder="Payment Info (e.g. Bkash: 123)" required />
-        <button type="submit">Create</button>
-      </form>
-      <div class="success" id="createMsg"></div>
-    </div>
+        <div id='tripsView' class='view-section'>
+          <div class='panel-block'>
+            <div class='panel-header-sm'>
+              <h3>Trip Schedule</h3>
+              <p>Read, create, edit or remove trips in the database.</p>
+            </div>
+            <form id='tripCreateForm' class='form-grid'>
+              <div>
+                <label for='trip_id'>Trip ID</label>
+                <input id='trip_id' name='trip_id' type='text' placeholder='Example: T-260803-A' required />
+              </div>
+              <div>
+                <label for='origin'>Origin</label>
+                <input id='origin' name='origin' type='text' placeholder='Dhaka' required />
+              </div>
+              <div>
+                <label for='destination'>Destination</label>
+                <input id='destination' name='destination' type='text' placeholder='Chattogram' required />
+              </div>
+              <div>
+                <label for='travel_date'>Travel Date</label>
+                <input id='travel_date' name='travel_date' type='date' required />
+              </div>
+              <div>
+                <label for='departure_time'>Departure Time</label>
+                <input id='departure_time' name='departure_time' type='time' required />
+              </div>
+              <div>
+                <label for='arrival_time'>Arrival Time</label>
+                <input id='arrival_time' name='arrival_time' type='time' required />
+              </div>
+              <div>
+                <label for='bus_id'>Bus ID</label>
+                <input id='bus_id' name='bus_id' type='text' placeholder='B101' required />
+              </div>
+              <div>
+                <label for='fare'>Fare (BDT)</label>
+                <input id='fare' name='fare' type='number' min='0' step='1' placeholder='450' required />
+              </div>
+              <div>
+                <label for='total_seats'>Total Seats</label>
+                <input id='total_seats' name='total_seats' type='number' min='1' step='1' value='40' required />
+              </div>
+              <div class='form-buttons'>
+                <button type='submit' class='button button--primary'>Save Trip</button>
+              </div>
+            </form>
+            <p id='tripTableMessage' class='message'></p>
+          </div>
 
-    <!-- Update Ticket -->
-    <div class="content-section" id="update" style="display:none;">
-      <h2>Update Ticket</h2>
-      <form id="searchUpdateForm">
-        <label>Ticket ID</label><br/>
-        <input type="text" name="ticket_id" placeholder="Enter Ticket ID" required />
-        <button type="submit">Search</button>
-      </form>
-      <div id="updateFormContainer"></div>
-    </div>
+          <div class='panel-block'>
+            <h3>Trips list</h3>
+            <div class='table-wrapper'>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Trip ID</th>
+                    <th>Date</th>
+                    <th>Departure</th>
+                    <th>Arrival</th>
+                    <th>Bus</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Fare</th>
+                    <th>Available</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id='tripsTableBody'></tbody>
+              </table>
+            </div>
+          </div>
 
-    <!-- Delete Ticket -->
-    <div class="content-section" id="delete" style="display:none;">
-      <h2>Delete Ticket</h2>
-      <form id="deleteForm">
-        <label>Ticket ID</label><br/>
-        <input type="text" name="ticket_id" placeholder="Enter Ticket ID" required />
-        <button type="submit">Delete</button>
-      </form>
-      <div class="success" id="deleteMsg"></div>
-    </div>
+          <div id='tripEditSection' class='panel-block hidden'>
+            <div class='panel-header-sm'>
+              <h3>Edit Trip</h3>
+            </div>
+            <form id='tripEditForm' class='form-grid'>
+              <div>
+                <label for='edit_trip_id'>Trip ID</label>
+                <input id='edit_trip_id' name='trip_id' type='text' readonly />
+              </div>
+              <div>
+                <label for='edit_origin'>Origin</label>
+                <input id='edit_origin' name='origin' type='text' required />
+              </div>
+              <div>
+                <label for='edit_destination'>Destination</label>
+                <input id='edit_destination' name='destination' type='text' required />
+              </div>
+              <div>
+                <label for='edit_travel_date'>Date</label>
+                <input id='edit_travel_date' name='travel_date' type='date' required />
+              </div>
+              <div>
+                <label for='edit_departure_time'>Departure</label>
+                <input id='edit_departure_time' name='departure_time' type='time' required />
+              </div>
+              <div>
+                <label for='edit_arrival_time'>Arrival</label>
+                <input id='edit_arrival_time' name='arrival_time' type='time' required />
+              </div>
+              <div>
+                <label for='edit_bus_id'>Bus ID</label>
+                <input id='edit_bus_id' name='bus_id' type='text' required />
+              </div>
+              <div>
+                <label for='edit_fare'>Fare</label>
+                <input id='edit_fare' name='fare' type='number' min='0' step='1' required />
+              </div>
+              <div>
+                <label for='edit_total_seats'>Total Seats</label>
+                <input id='edit_total_seats' name='total_seats' type='number' min='1' step='1' required />
+              </div>
+              <div class='form-buttons'>
+                <button type='submit' class='button button--primary'>Save changes</button>
+                <button type='button' id='tripEditCancel' class='button button--ghost'>Cancel</button>
+              </div>
+            </form>
+            <p id='tripEditMessage' class='message'></p>
+          </div>
+        </div>
 
-<!-- Request to Admin (Counter Manager — non‑AJAX, same as tmanager) -->
-<div id="request-admin" class="content-section" style="display:none;">
-  <h2>Request to Admin</h2>
-  <form method="post" action="cmanager.php" id="adminRequestForm">
-    <!-- will be filled from logged-in user id -->
-    <input type="hidden" name="requested_by" id="cm-requestedBy" />
-    <label for="subject">Subject</label><br />
-    <input type="text" name="subject" placeholder="Subject" required /><br />
-    <label for="details">Details</label><br />
-    <textarea name="details" placeholder="Request Details" required></textarea><br />
-    <button type="submit" name="request_admin">Send Request</button>
-  </form>
-  <div class="success" id="requestStatus"></div>
-</div>
+        <div id='ticketsView' class='view-section'>
+          <div class='panel-block'>
+            <div class='panel-header-sm'>
+              <h3>Ticket Management</h3>
+              <p>Create, update, and remove ticket records here.</p>
+            </div>
+            <form id='ticketCreateForm' class='form-grid'>
+              <div>
+                <label for='ticket_trip_id'>Trip</label>
+                <select id='ticket_trip_id' name='trip_id' required>
+                  <option value=''>Select a trip</option>
+                </select>
+              </div>
+              <div>
+                <label for='seat_number'>Seat No.</label>
+                <input id='seat_number' name='seat_number' type='text' placeholder='A1' required />
+              </div>
+              <div>
+                <label for='passenger_name'>Passenger</label>
+                <input id='passenger_name' name='passenger_name' type='text' placeholder='Full name' required />
+              </div>
+              <div>
+                <label for='phone'>Phone</label>
+                <input id='phone' name='phone' type='text' placeholder='01XXXXXXXXX' required />
+              </div>
+              <div>
+                <label for='email'>Email</label>
+                <input id='email' name='email' type='email' placeholder='email@example.com' required />
+              </div>
+              <div>
+                <label for='boarding_point'>Boarding Point</label>
+                <input id='boarding_point' name='boarding_point' type='text' placeholder='Station name' required />
+              </div>
+              <div>
+                <label for='dropping_point'>Dropping Point</label>
+                <input id='dropping_point' name='dropping_point' type='text' placeholder='Station name' required />
+              </div>
+              <div>
+                <label for='payment_method'>Payment method</label>
+                <select id='payment_method' name='payment_method' required>
+                  <option value=''>Choose method</option>
+                  <option value='Bkash'>Bkash</option>
+                  <option value='Card'>Card</option>
+                </select>
+              </div>
+              <div>
+                <label for='payment_info'>Payment info</label>
+                <input id='payment_info' name='payment_info' type='text' placeholder='Bkash Txn ID or card ref' required />
+              </div>
+              <div class='form-buttons'>
+                <button type='submit' class='button button--primary'>Create Ticket</button>
+              </div>
+            </form>
+            <p id='ticketTableMessage' class='message'></p>
+          </div>
 
+          <div class='panel-block'>
+            <h3>Tickets list</h3>
+            <div class='table-wrapper'>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ticket ID</th>
+                    <th>Trip</th>
+                    <th>Date</th>
+                    <th>Seat</th>
+                    <th>Passenger</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Boarding</th>
+                    <th>Dropping</th>
+                    <th>Method</th>
+                    <th>Fare</th>
+                    <th>Booked</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id='ticketsTableBody'></tbody>
+              </table>
+            </div>
+          </div>
 
+          <div id='ticketEditSection' class='panel-block hidden'>
+            <div class='panel-header-sm'>
+              <h3>Edit Ticket</h3>
+            </div>
+            <form id='ticketEditForm' class='form-grid'>
+              <input id='edit_ticket_id' name='ticket_id' type='hidden' />
+              <div>
+                <label for='edit_trip_id'>Trip</label>
+                <input id='edit_trip_id' name='trip_id' type='text' readonly />
+              </div>
+              <div>
+                <label for='edit_seat_number'>Seat No.</label>
+                <input id='edit_seat_number' name='seat_number' type='text' required />
+              </div>
+              <div>
+                <label for='edit_passenger_name'>Passenger</label>
+                <input id='edit_passenger_name' name='passenger_name' type='text' required />
+              </div>
+              <div>
+                <label for='edit_phone'>Phone</label>
+                <input id='edit_phone' name='phone' type='text' required />
+              </div>
+              <div>
+                <label for='edit_email'>Email</label>
+                <input id='edit_email' name='email' type='email' required />
+              </div>
+              <div>
+                <label for='edit_boarding_point'>Boarding</label>
+                <input id='edit_boarding_point' name='boarding_point' type='text' required />
+              </div>
+              <div>
+                <label for='edit_dropping_point'>Dropping</label>
+                <input id='edit_dropping_point' name='dropping_point' type='text' required />
+              </div>
+              <div>
+                <label for='edit_payment_method'>Payment</label>
+                <select id='edit_payment_method' name='payment_method' required>
+                  <option value='Bkash'>Bkash</option>
+                  <option value='Card'>Card</option>
+                </select>
+              </div>
+              <div>
+                <label for='edit_payment_info'>Payment info</label>
+                <input id='edit_payment_info' name='payment_info' type='text' required />
+              </div>
+              <div class='form-buttons'>
+                <button type='submit' class='button button--primary'>Save Ticket</button>
+                <button type='button' id='ticketEditCancel' class='button button--ghost'>Cancel</button>
+              </div>
+            </form>
+            <p id='ticketEditMessage' class='message'></p>
+          </div>
+        </div>
 
+        <div id='requestsView' class='view-section'>
+          <div class='panel-block'>
+            <div class='panel-header-sm'>
+              <h3>Create Request</h3>
+              <p>Send support requests to admin and review what has been submitted.</p>
+            </div>
+            <form id='requestCreateForm' class='form-grid'>
+              <div>
+                <label for='request_subject'>Subject</label>
+                <input id='request_subject' name='subject' type='text' placeholder='Type your request summary' required />
+              </div>
+              <div class='form-full'>
+                <label for='request_details'>Details</label>
+                <textarea id='request_details' name='details' rows='4' placeholder='Explain the request in detail' required></textarea>
+              </div>
+              <div class='form-buttons'>
+                <button type='submit' class='button button--primary'>Send Request</button>
+              </div>
+            </form>
+            <p id='requestMessage' class='message'></p>
+          </div>
 
-<script>
-function showSection(id) {
-  document.querySelectorAll('.content-section').forEach(el => el.style.display = 'none');
-  document.getElementById(id).style.display = 'block';
-}
-document.getElementById('loginHomeBtn').onclick = () => location.href = 'index.html';
+          <div class='panel-block'>
+            <h3>Request History</h3>
+            <div class='table-wrapper'>
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Subject</th>
+                    <th>Details</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id='requestsTableBody'></tbody>
+              </table>
+            </div>
+          </div>
 
-// Home / Logout
-document.getElementById('homeBtn').onclick = () => location.href = 'index.html';
-document.getElementById('logoutBtn').onclick = () => {
-  document.getElementById('dashboard-section').style.display = 'none';
-  document.getElementById('login-section').style.display = 'flex';
-};
-
-// Store User ID after login (for request to admin)
-let loggedInUserId = "";
-
-// Login Form Handler
-document.getElementById('loginForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  loggedInUserId = this.userid.value;
-  document.getElementById('login-section').style.display = 'none';
-  document.getElementById('dashboard-section').style.display = 'flex';
-  showSection('manageTrips');
-  loadTrips();
-});
-
-// --------- Manage Trips: table ----------
-function loadTrips() {
-  fetch('cmanager.php', { method: 'POST', body: new URLSearchParams({ action: 'get_trips' }) })
-  .then(res => res.json())
-  .then(trips => {
-    const tbody = document.querySelector('#tripsTable tbody');
-    tbody.innerHTML = '';
-    if (!Array.isArray(trips) || trips.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9">No trips found.</td></tr>';
-      return;
-    }
-    trips.forEach(trip => {
-      tbody.insertAdjacentHTML('beforeend', `
-        <tr>
-          <td>${trip.trip_id}</td>
-          <td>${trip.travel_date ?? ''}</td>
-          <td>${trip.departure_time ?? ''}</td>
-          <td>${trip.bus_id ?? ''}</td>
-          <td>${trip.origin ?? ''}</td>
-          <td>${trip.destination ?? ''}</td>
-          <td>${trip.fare ?? ''}</td>
-          <td>${trip.arrival_time ?? ''}</td>
-          <td>${trip.available_seats ?? ''}</td>
-        </tr>
-      `);
-    });
-  });
-}
-document.querySelector('button[onclick="showSection(\'manageTrips\')"]').onclick = function() {
-  showSection('manageTrips'); loadTrips();
-};
-
-// --------- NEW: Search Trip ----------
-document.getElementById('searchTripForm').addEventListener('submit', function(e){
-  e.preventDefault();
-  const trip_id = this.trip_id.value.trim();
-  fetch('cmanager.php', {
-    method: 'POST',
-    body: new URLSearchParams({ action: 'overview_trip', trip_id })
-  })
-  .then(res => res.json())
-  .then(data => {
-    const cap = data.capacity ?? 28;
-    document.getElementById('searchTripResult').innerHTML = `
-      <p><strong>Trip ID:</strong> ${data.trip_id ?? trip_id}</p>
-      <p><strong>Booked Seats:</strong> ${data.booked ?? 0}</p>
-      <p><strong>Remaining:</strong> ${typeof data.remaining === 'number' ? data.remaining : (cap - (data.booked||0))}</p>
-    `;
-  })
-  .catch(() => {
-    document.getElementById('searchTripResult').innerHTML =
-      '<p style="color:#ff4b4b;">Error fetching trip summary.</p>';
-  });
-});
-document.getElementById('searchTripResetBtn').addEventListener('click', function(){
-  document.getElementById('searchTripForm').reset();
-  document.getElementById('searchTripResult').innerHTML = '';
-});
-
-// --------- Overview Ticket Details (table + filter) ----------
-function loadTickets(tripFilter) {
-  const params = tripFilter
-    ? new URLSearchParams({ action: 'tickets_by_trip', trip_id: tripFilter })
-    : new URLSearchParams({ action: 'tickets_all' });
-
-  fetch('cmanager.php', { method: 'POST', body: params })
-    .then(res => res.json())
-    .then(rows => {
-      const tb = document.querySelector('#ticketsTable tbody');
-      tb.innerHTML = '';
-      if (!Array.isArray(rows) || rows.length === 0) {
-        tb.innerHTML = '<tr><td colspan="12">No tickets found.</td></tr>';
-        return;
-      }
-      rows.forEach(t => {
-        tb.insertAdjacentHTML('beforeend', `
-          <tr>
-            <td>${t.ticket_id ?? ''}</td>
-            <td>${t.trip_id ?? ''}</td>
-            <td>${t.seat_number ?? ''}</td>
-            <td>${t.passenger_name ?? ''}</td>
-            <td>${t.phone ?? ''}</td>
-            <td>${t.email ?? ''}</td>
-            <td>${t.address ?? ''}</td>
-            <td>${t.boarding_point ?? ''}</td>
-            <td>${t.dropping_point ?? ''}</td>
-            <td>${t.payment_method ?? ''}</td>
-            <td>${t.payment_info ?? ''}</td>
-            <td>${t.booking_time ?? ''}</td>
-          </tr>
-        `);
-      });
-    });
-}
-document.querySelector('button[onclick="showSection(\'overview\')"]').onclick = function() {
-  showSection('overview'); loadTickets();
-};
-document.getElementById('overviewTicketsForm').addEventListener('submit', function(e){
-  e.preventDefault();
-  const t = this.trip_id.value.trim();
-  loadTickets(t || null);
-});
-document.getElementById('showAllTicketsBtn').addEventListener('click', ()=> {
-  document.getElementById('overviewTicketsForm').trip_id.value = '';
-  loadTickets();
-});
-document.getElementById('resetTicketsBtn').addEventListener('click', ()=> {
-  document.getElementById('overviewTicketsForm').reset();
-  document.querySelector('#ticketsTable tbody').innerHTML = '';
-});
-
-// --------- Create Ticket ----------
-document.getElementById('createForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const form = new FormData(this);
-  form.append('action', 'create_ticket');
-  fetch('cmanager.php', { method: 'POST', body: form })
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById('createMsg').textContent =
-        data.status === 'success' ? ('Ticket Created! ID: ' + data.ticket_id)
-                                  : ('Error: ' + (data.message || 'Failed'));
-      if (data.status === 'success') this.reset();
-    });
-});
-
-// --------- Update Ticket ----------
-document.getElementById('searchUpdateForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const ticket_id = this.ticket_id.value;
-  fetch('cmanager.php', { method: 'POST', body: new URLSearchParams({ action: 'get_ticket', ticket_id }) })
-  .then(res => res.json())
-  .then(ticket => {
-    if (!ticket.ticket_id) {
-      document.getElementById('updateFormContainer').innerHTML = '<p style="color:red;">Ticket not found</p>';
-      return;
-    }
-    document.getElementById('updateFormContainer').innerHTML = `
-      <form id="doUpdateForm">
-        <input type="hidden" name="ticket_id" value="${ticket.ticket_id}" /><br/>
-        <label>Trip ID</label><br/>
-        <input type="text" name="trip_id" value="${ticket.trip_id}" required /><br/>
-        <label>Seat Number</label><br/>
-        <input type="text" name="seat_number" value="${ticket.seat_number}" required /><br/>
-        <button type="submit">Update</button>
-      </form>
-    `;
-    document.getElementById('doUpdateForm').addEventListener('submit', function(e2) {
-      e2.preventDefault();
-      const form = new FormData(this);
-      form.append('action', 'update_ticket');
-      fetch('cmanager.php', { method: 'POST', body: form })
-        .then(res => res.json())
-        .then(() => {
-          document.getElementById('updateFormContainer').innerHTML = '<p style="color:green;">Ticket updated.</p>';
-        });
-    });
-  });
-});
-
-// --------- Delete Ticket ----------
-document.getElementById('deleteForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const ticket_id = this.ticket_id.value;
-  if (!confirm('Delete this ticket?')) return;
-  fetch('cmanager.php', { method: 'POST', body: new URLSearchParams({ action: 'delete_ticket', ticket_id }) })
-  .then(res => res.json())
-  .then(() => {
-    document.getElementById('deleteMsg').textContent = 'Ticket deleted.';
-    this.reset();
-  });
-});
-
-// --------- Request to Admin ----------
-document.getElementById('adminRequestForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const subject = this.subject.value.trim();
-  const details = this.details.value.trim();
-  if (!subject || !details || !loggedInUserId) return;
-
-  fetch('cmanager.php', {
-    method: 'POST',
-    body: new URLSearchParams({
-      action: 'request_admin',
-      subject: subject,
-      details: details,
-      requested_by: loggedInUserId
-    })
-  })
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById('adminRequestMsg').textContent =
-      data.status === 'success' ? 'Request sent to Admin!' : ('Error: ' + (data.message || 'Failed'));
-    this.reset();
-    setTimeout(() => { document.getElementById('adminRequestMsg').textContent = ''; }, 3000);
-  });
-});
-
-
-</script>
-<script type="module">
-import { db } from './firebase-init.js';
-import { collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
-
-const requestForm = document.getElementById('adminRequestForm');
-requestForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  e.stopImmediatePropagation();
-
-  const subject = requestForm.subject.value.trim();
-  const details = requestForm.details.value.trim();
-  const requestedByInput = document.getElementById('cm-requestedBy');
-  const loginUserId = document.querySelector('#loginForm input[name="userid"]')?.value.trim() || '';
-  const requestedBy = requestedByInput.value.trim() || loginUserId;
-
-  if (!subject || !details || !requestedBy) {
-    document.getElementById('requestStatus').textContent = 'Please log in first and complete all request fields.';
-    return;
-  }
-
-  try {
-    await addDoc(collection(db, 'requests'), {
-      subject,
-      details,
-      requested_by: requestedBy,
-      status: 'Pending',
-      source: 'Counter Manager',
-      created_at: serverTimestamp(),
-      updated_at: serverTimestamp()
-    });
-    document.getElementById('requestStatus').textContent = 'Request sent to Admin!';
-    requestForm.reset();
-    requestedByInput.value = requestedBy;
-    setTimeout(() => { document.getElementById('requestStatus').textContent = ''; }, 3000);
-  } catch (error) {
-    document.getElementById('requestStatus').textContent = 'Error: ' + (error.message || 'Failed');
-  }
-}, true);
-</script>
+          <div id='requestEditSection' class='panel-block hidden'>
+            <div class='panel-header-sm'>
+              <h3>Edit Request</h3>
+            </div>
+            <form id='requestEditForm' class='form-grid'>
+              <input id='edit_request_id' name='request_id' type='hidden' />
+              <div class='form-full'>
+                <label for='edit_request_subject'>Subject</label>
+                <input id='edit_request_subject' name='subject' type='text' required />
+              </div>
+              <div class='form-full'>
+                <label for='edit_request_details'>Details</label>
+                <textarea id='edit_request_details' name='details' rows='4' required></textarea>
+              </div>
+              <div class='form-buttons'>
+                <button type='submit' class='button button--primary'>Save Request</button>
+                <button type='button' id='requestEditCancel' class='button button--ghost'>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <script type='module' src='cmanager.js'></script>
 </body>
 </html>
