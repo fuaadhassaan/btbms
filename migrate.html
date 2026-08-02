@@ -6,6 +6,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-app.js';
     import { getFirestore, doc, setDoc, collection, addDoc } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
+    import { TRIPS } from './trips-data.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyDF2L2QCs9g0KGzyLGp03aQTaZ6A20zdPk",
@@ -52,7 +53,19 @@
       document.getElementById('status').textContent = 'Migration complete — wrote collections to Firestore.';
     }
 
+    async function seedScheduledTripsOnly(){
+      document.getElementById('status').textContent = 'Seeding new trips for 2026-08-06 through 2026-08-13...';
+      const scheduledTrips = TRIPS.filter(t => t.travel_date >= '2026-08-06' && t.travel_date <= '2026-08-13');
+
+      for (const trip of scheduledTrips) {
+        await setDoc(doc(db, 'trips', trip.trip_id), trip);
+      }
+
+      document.getElementById('status').textContent = `Seeded ${scheduledTrips.length} trips without touching existing bookings.`;
+    }
+
     window.migrate = migrate;
+    window.seedScheduledTripsOnly = seedScheduledTripsOnly;
   </script>
   <style>body{font-family:sans-serif;padding:30px;background:#111;color:#fff}</style>
 </head>
@@ -60,6 +73,7 @@
   <h1>Migrate data/db.json → Firestore</h1>
   <p id="status">Ready</p>
   <p><button onclick="migrate()">Start Migration</button></p>
+  <p><button onclick="seedScheduledTripsOnly()">Seed New Trips Only</button></p>
   <p>Note: Firestore rules currently allow writes. After migration tighten rules for production.</p>
 </body>
 </html>
