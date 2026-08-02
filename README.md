@@ -56,8 +56,6 @@ BTBMS – A complete Bus Ticket Booking &amp; Management System | Real-time seat
 
 - In the Firebase Console, open **Build > Firestore Database > Data** to show these collections to your professor
 
-- Use [migrate.html](migrate.html) only for a full reset/import; use the new **Seed New Trips Only** action to add the 06/08/2026 to 13/08/2026 schedule without touching booked seats
-
 **Please note that this version doesn't represent the full version, more features and testing are under development.**
 
 **All Rights Reserved by Md. Fuad Hasan, 2026© | For enquiries, email at: fuaadhassaan@gmail.com**
