@@ -137,7 +137,7 @@ async function handleLogin(event) {
       listenersStarted = true;
     }
   } else {
-    loginError.textContent = 'Invalid credentials. Use AD1 / 141.';
+    loginError.textContent = 'Invalid credentials. Use CM1 / 341.';
   }
 }
 
@@ -241,8 +241,20 @@ function buildReference(value) {
 }
 
 function getCurrentTimeMinutes() {
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes();
+  // Use Asia/Dhaka timezone for completed trips calculation
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Dhaka'
+    }).formatToParts(new Date());
+    const hourPart = parts.find(p => p.type === 'hour')?.value || '00';
+    const minutePart = parts.find(p => p.type === 'minute')?.value || '00';
+    const hours = parseInt(hourPart, 10);
+    const minutes = parseInt(minutePart, 10);
+    return hours * 60 + minutes;
+  } catch (e) {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  }
 }
 
 function buildTripRow(trip) {
@@ -708,7 +720,9 @@ function updateDashboardMetrics() {
   dashboardFields.completedTrips.textContent = completedTrips;
   dashboardFields.bookedSeats.textContent = bookedSeats;
   dashboardFields.availableSeats.textContent = availableSeats;
-  dashboardFields.earnings.textContent = `${totalEarnings} BDT`;
+  dashboardFields.earnings.textContent = (typeof totalEarnings === 'number')
+    ? (totalEarnings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' BDT')
+    : (totalEarnings + ' BDT');
   dashboardFields.requestCount.textContent = requestsData.length;
 }
 

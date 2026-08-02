@@ -265,6 +265,25 @@ body {
   color: #fff;
 }
 
+.stat-card--big {
+  background: linear-gradient(180deg, rgba(140, 20, 20, 0.25), rgba(12, 12, 12, 0.95));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.stat-card--big p {
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: #fff;
+}
+
+.stat-card--big h3 {
+  color: #ffb2b2;
+  margin-bottom: 8px;
+}
+
 .panel-block {
   background: rgba(14, 14, 14, 0.96);
   border: 1px solid rgba(255, 255, 255, 0.06);
