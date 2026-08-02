@@ -33,7 +33,7 @@
       </div>
       <div class="info" id="info">Selected: <span id="selCount">0</span></div>
       <div id="sql" class="sqlbox" style="display:none"></div>
-      <p class="info">Instructions: after running the generated SQL in phpMyAdmin, run <code>export-db.ps1</code> locally to update the live site.</p>
+      <p class="info">Instructions: use the live booking button for realtime updates, or run the generated SQL in phpMyAdmin and then run <code>export-db.ps1</code> locally to refresh the static export.</p>
     </div>
   </main>
 
@@ -135,7 +135,7 @@ import { collection, query, where, onSnapshot, addDoc } from 'https://www.gstati
   setupRealtime();
 
   // refresh button
-  document.getElementById('refreshBtn').addEventListener('click', loadBookings);
+  document.getElementById('refreshBtn').addEventListener('click', loadBookingsPollFallback);
 
   // confirm -> generate SQL insert statements and show instructions
   document.getElementById('confirmBtn').addEventListener('click', ()=>{
