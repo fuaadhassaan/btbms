@@ -4,7 +4,7 @@
   <meta charset='UTF-8' />
   <meta name='viewport' content='width=device-width, initial-scale=1.0' />
   <title>BTBMS Counter Manager</title>
-  <link rel='stylesheet' href='cmanager.css?v=6e79ff5' />
+  <link rel='stylesheet' href='cmanager.css?v=6e79ff6' />
 </head>
 <body>
   <div class='page-overlay'></div>
@@ -15,14 +15,15 @@
           <span>BTBMS Counter Manager</span>
         </div>
         <h1>Manager Login</h1>
-        <p class='hint'>Use ID <strong>AD1</strong> and password <strong>141</strong></p>
+        <p class='hint'>Hint: <strong>CM1</strong> and <strong>CD1</strong></p>
         <form id='loginForm' class='form-stack'>
           <label for='userid'>User ID</label>
-          <input id='userid' name='userid' type='text' placeholder='AD1' autocomplete='username' required />
+          <input id='userid' name='userid' type='text' placeholder='CM1' autocomplete='username' required />
           <label for='password'>Password</label>
-          <input id='password' name='password' type='password' placeholder='141' autocomplete='current-password' required />
+          <input id='password' name='password' type='password' placeholder='CD1' autocomplete='current-password' required />
           <button type='submit' class='button button--primary'>Login</button>
         </form>
+        <a href='index.html' class='button button--ghost'>Home</a>
         <p id='loginError' class='message'></p>
       </div>
     </section>
@@ -408,6 +409,6 @@
       </section>
     </section>
   </main>
-  <script type='module' src='cmanager.js?v=6e79ff5'></script>
+  <script type='module' src='cmanager.js?v=6e79ff6'></script>
 </body>
 </html>

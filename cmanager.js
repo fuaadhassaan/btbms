@@ -15,7 +15,7 @@ import {
   increment
 } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
 
-const credentials = { userId: 'CM1', password: '341' };
+const credentials = { userId: 'CM1', password: 'CD1' };
 let loggedInUser = null;
 let tripsData = [];
 let ticketsData = [];
@@ -137,7 +137,7 @@ async function handleLogin(event) {
       listenersStarted = true;
     }
   } else {
-    loginError.textContent = 'Invalid credentials. Use CM1 / 341.';
+    loginError.textContent = 'Invalid credentials. Use CM1 / CD1.';
   }
 }
 
