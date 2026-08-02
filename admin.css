@@ -110,13 +110,22 @@ body::before {
   color: #a7a7a7;
 }
 
+.auth-form select,
 .form-grid select {
   appearance: none;
   -webkit-appearance: none;
-  -moz-appearance: none;
-  background: rgba(255, 255, 255, 0.06);
+  background-image: linear-gradient(45deg, transparent 50%, #ff5a5a 50%),
+    linear-gradient(135deg, #ff5a5a 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 13px) calc(1em + 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 36px;
+}
+
+.auth-form select option,
+.form-grid select option {
+  background: #141414;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .form-grid select:focus {
@@ -348,15 +357,6 @@ button:hover,
 .form-grid textarea {
   min-height: 100px;
   resize: vertical;
-}
-
-.form-grid select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .form-grid select:focus {
