@@ -89,6 +89,21 @@ function getDhakaDateTime(date = new Date()) {
   };
 }
 
+function selectOptionValue(selectElement, value) {
+  if (!selectElement) return;
+  const normalized = String(value || '').trim().toLowerCase();
+  let matched = false;
+  Array.from(selectElement.options).forEach(option => {
+    if (String(option.value || '').trim().toLowerCase() === normalized && normalized !== '') {
+      option.selected = true;
+      matched = true;
+    }
+  });
+  if (!matched) {
+    selectElement.value = '';
+  }
+}
+
 function setMessage(id, message, type = '') {
   const el = document.getElementById(id);
   if (!el) return;
@@ -303,8 +318,8 @@ function renderRequestsTable() {
       <td><span class="status-pill ${statusClass}">${escapeHtml(request.status)}</span></td>
       <td>${escapeHtml(request.details)}</td>
       <td>
-        <button class="mini-btn alt" type="button" onclick="loadRequestToForm('${escapeHtml(request.request_id || request.id)}')">Edit</button>
-        <button class="mini-btn danger" type="button" onclick="loadRequestDelete('${escapeHtml(request.request_id || request.id)}')">Delete</button>
+        <button class="mini-btn alt table-action" type="button" data-action="edit" data-entity="request" data-id="${escapeHtml(request.request_id || request.id)}">Edit</button>
+        <button class="mini-btn danger table-action" type="button" data-action="delete" data-entity="request" data-id="${escapeHtml(request.request_id || request.id)}">Delete</button>
       </td>
     </tr>`;
   }).join('');
@@ -350,9 +365,9 @@ function loadTicketToForm(ticketId) {
   document.getElementById('ticketUpdatePassenger').value = ticket.passenger_name || '';
   document.getElementById('ticketUpdatePhone').value = ticket.phone || ticket.contact_number || '';
   document.getElementById('ticketUpdateEmail').value = ticket.email || '';
-  document.getElementById('ticketUpdateBoarding').value = ticket.boarding_point || '';
-  document.getElementById('ticketUpdateDropping').value = ticket.dropping_point || '';
-  document.getElementById('ticketUpdatePayment').value = ticket.payment_method || 'Cash';
+  selectOptionValue(document.getElementById('ticketUpdateBoarding'), ticket.boarding_point);
+  selectOptionValue(document.getElementById('ticketUpdateDropping'), ticket.dropping_point);
+  selectOptionValue(document.getElementById('ticketUpdatePayment'), ticket.payment_method);
 }
 
 function loadTicketDelete(ticketId) {
@@ -629,6 +644,8 @@ function bindForms() {
     document.getElementById('ticketDeleteForm').reset();
   });
 
+  bindTableActions();
+
   document.getElementById('requestCreateForm').addEventListener('submit', handleRequestCreate);
   document.getElementById('requestUpdateForm').addEventListener('submit', handleRequestUpdate);
   document.getElementById('requestDeleteForm').addEventListener('submit', handleRequestDelete);
@@ -637,6 +654,37 @@ function bindForms() {
   });
   document.getElementById('requestDeleteClearBtn').addEventListener('click', () => {
     document.getElementById('requestDeleteForm').reset();
+  });
+}
+
+function bindTableActions() {
+  const allTables = [
+    els.tripsTableContainer,
+    els.ticketsTableContainer,
+    els.requestsTableContainer,
+  ];
+
+  allTables.forEach(container => {
+    container.addEventListener('click', event => {
+      const button = event.target.closest('button.table-action');
+      if (!button) return;
+      const action = button.dataset.action;
+      const entity = button.dataset.entity;
+      const id = button.dataset.id;
+      if (!action || !entity || !id) return;
+
+      if (action === 'edit') {
+        if (entity === 'trip') loadTripToForm(id);
+        if (entity === 'ticket') loadTicketToForm(id);
+        if (entity === 'request') loadRequestToForm(id);
+      }
+
+      if (action === 'delete') {
+        if (entity === 'trip') loadTripDelete(id);
+        if (entity === 'ticket') loadTicketDelete(id);
+        if (entity === 'request') loadRequestDelete(id);
+      }
+    });
   });
 }
 
