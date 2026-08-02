@@ -15,7 +15,7 @@ import {
   increment
 } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
 
-const credentials = { userId: 'AD1', password: '141' };
+const credentials = { userId: 'CM1', password: '341' };
 let loggedInUser = null;
 let tripsData = [];
 let ticketsData = [];
