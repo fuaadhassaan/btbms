@@ -448,6 +448,7 @@ function renderRequestsTable() {
     return;
   }
 
+<<<<<<< HEAD
   const rows = state.requests.map(request => `
     <tr>
       <td>${escapeHtml(request.request_id || request.id)}</td>
@@ -458,11 +459,33 @@ function renderRequestsTable() {
     </tr>
   `).join('');
 
+=======
+  const sorted = [...state.requests].sort((a, b) => {
+    const aTime = a.created_at?.toMillis ? a.created_at.toMillis() : 0;
+    const bTime = b.created_at?.toMillis ? b.created_at.toMillis() : 0;
+    return aTime - bTime;
+  });
+
+  const rows = sorted.map((request, index) => `
+    <tr>
+      <td>${index + 1}</td>
+      <td>${escapeHtml(request.subject)}</td>
+      <td>${escapeHtml(request.requested_by)}</td>
+      <td>${escapeHtml(request.status)}</td>
+      <td>${escapeHtml(request.details)}</td>
+    </tr>
+  `).join('');
+
+>>>>>>> b6b454baf669e6029ec09e42f70adec5673c107a
   els.requestsTableContainer.innerHTML = `
     <table class="styled-table">
       <thead>
         <tr>
+<<<<<<< HEAD
           <th>Request ID</th><th>Subject</th><th>Requested By</th><th>Status</th><th>Details</th>
+=======
+          <th>#</th><th>Subject</th><th>Requested By</th><th>Status</th><th>Details</th>
+>>>>>>> b6b454baf669e6029ec09e42f70adec5673c107a
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -624,4 +647,8 @@ window.loadTicketToForm = loadTicketToForm;
 window.loadTicketDelete = loadTicketDelete;
 window.showSection = setActiveSection;
 
+<<<<<<< HEAD
 bootstrap();
+=======
+bootstrap();
+>>>>>>> b6b454baf669e6029ec09e42f70adec5673c107a
