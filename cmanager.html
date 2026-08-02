@@ -404,5 +404,44 @@ document.getElementById('adminRequestForm').addEventListener('submit', function(
 
 
 </script>
+<script type="module">
+import { db } from './firebase-init.js';
+import { collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
+
+const requestForm = document.getElementById('adminRequestForm');
+requestForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  const subject = requestForm.subject.value.trim();
+  const details = requestForm.details.value.trim();
+  const requestedByInput = document.getElementById('cm-requestedBy');
+  const loginUserId = document.querySelector('#loginForm input[name="userid"]')?.value.trim() || '';
+  const requestedBy = requestedByInput.value.trim() || loginUserId;
+
+  if (!subject || !details || !requestedBy) {
+    document.getElementById('requestStatus').textContent = 'Please log in first and complete all request fields.';
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, 'requests'), {
+      subject,
+      details,
+      requested_by: requestedBy,
+      status: 'Pending',
+      source: 'Counter Manager',
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp()
+    });
+    document.getElementById('requestStatus').textContent = 'Request sent to Admin!';
+    requestForm.reset();
+    requestedByInput.value = requestedBy;
+    setTimeout(() => { document.getElementById('requestStatus').textContent = ''; }, 3000);
+  } catch (error) {
+    document.getElementById('requestStatus').textContent = 'Error: ' + (error.message || 'Failed');
+  }
+}, true);
+</script>
 </body>
 </html>

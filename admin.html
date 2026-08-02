@@ -2,265 +2,449 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BTBMS - Admin</title>
   <link rel="stylesheet" href="admin.css" />
 </head>
 <body>
-<div id="login-section" class="centered">
-  <h2>Admin Login</h2>
-  <form id="adminLoginForm">
-    <label for="userid">User ID</label><br/>
-    <input type="text" name="userid" placeholder="User ID" required><br/>
-    <label for="password">Password</label><br/>
-    <input type="password" name="password" placeholder="Password" required><br/>
-    <button type="submit" id="login" class="btn-red">Login</button>
-    <button type="button" id="loginHomeBtn" class="btn-red">Home</button>
-  </form>
-</div>
-
-<div id="dashboard-section" style="display:none;">
-  <div class="sidebar">
-    <button id="home-btn" class="sidebar-top-btn">Home</button>
-    <button id="logout-btn" class="sidebar-top-btn logout-btn">Logout</button>
-    <button onclick="showSection('trip')">Manage Trip</button>
-    <button onclick="showSection('ticket')">Manage Ticket</button>
-    <button onclick="showSection('stats')">Overview Company Stats</button>
-    <button onclick="showSection('requests')">Handle Requests</button>
-  </div>
-
-  <div class="main-content">
-    <!-- Manage Trip -->
-    <div class="content-section" id="trip">
-      <h2>Manage Trip</h2>
-      <div class="subsection-btns">
-        <button onclick="loadSub('trip', 'overview')">Overview Trip Details</button>
-        <button onclick="loadSub('trip', 'create')">Create</button>
-        <button onclick="loadSub('trip', 'update')">Update</button>
-        <button onclick="loadSub('trip', 'delete')">Delete</button>
-      </div>
-      <div id="trip-content"></div>
-    </div>
-
-    <!-- Manage Ticket -->
-    <div class="content-section" id="ticket">
-      <h2>Manage Ticket</h2>
-      <div class="subsection-btns">
-        <button onclick="loadSub('ticket', 'overview')">Overview Ticket Details</button>
-        <button onclick="loadSub('ticket', 'create')">Create Ticket</button>
-        <button onclick="loadSub('ticket', 'update')">Update Ticket</button>
-        <button onclick="loadSub('ticket', 'delete')">Delete Ticket</button>
-      </div>
-      <div id="ticket-content"></div>
-    </div>
-
-    <!-- Overview Company Stats -->
-    <div class="content-section" id="stats">
-      <h2>Overview Company Stats</h2>
-      <div class="subsection-btns">
-        <button onclick="loadCompanyStats('daily')" id="stat-btn-daily" class="stat-btn-active">Daily</button>
-        <button onclick="loadCompanyStats('monthly')" id="stat-btn-monthly">Monthly</button>
-        <button onclick="loadCompanyStats('yearly')" id="stat-btn-yearly">Yearly</button>
-      </div>
-      <div id="stats-content"></div>
-    </div>
-
-    <!-- Handle Requests -->
-    <div class="content-section" id="requests">
-      <h2>Handle Requests</h2>
-      <div id="requests-content"></div>
+  <div id="loginView" class="auth-shell">
+    <div class="auth-card">
+      <div class="auth-badge">ADMIN ACCESS</div>
+      <h1>Redline Dashboard</h1>
+      <p>Sign in with the admin credentials to reach the live dashboard.</p>
+      <p class="badge">User ID: AD1 | Password: 141</p>
+      <form id="adminLoginForm" class="auth-form">
+        <div>
+          <label for="adminUserId">User ID</label>
+          <input id="adminUserId" name="userid" type="text" placeholder="Enter User ID" autocomplete="username" required />
+        </div>
+        <div>
+          <label for="adminPassword">Password</label>
+          <input id="adminPassword" name="password" type="password" placeholder="Enter Password" autocomplete="current-password" required />
+        </div>
+        <div class="auth-actions">
+          <button class="primary-btn" type="submit">Login</button>
+          <button class="secondary-btn" type="button" id="adminHomeBtn">Home</button>
+        </div>
+        <div id="loginMessage" class="error-msg"></div>
+      </form>
     </div>
   </div>
-</div>
 
-<script>
-// --- Login page buttons ---
-document.getElementById('loginHomeBtn').onclick = () => location.href = 'index.html';
+  <div id="appView" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="sidebar-brand">BTBMS Admin</div>
+      <button type="button" class="sidebar-link active" data-section="dashboard">Dashboard</button>
+      <button type="button" class="sidebar-link" data-section="trips">Manage Trips</button>
+      <button type="button" class="sidebar-link" data-section="tickets">Manage Tickets</button>
+      <button type="button" class="sidebar-link" data-section="requests">Manage Requests</button>
+      <div class="sidebar-footer">
+        <button type="button" id="adminLandingBtn">Home</button>
+        <button type="button" id="adminLogoutBtn">Logout</button>
+      </div>
+    </aside>
 
-// --- Dashboard sidebar buttons ---
-document.getElementById('home-btn').onclick   = () => location.href = 'index.html';
-document.getElementById('logout-btn').onclick = function() {
-  fetch('admin.php', { method: 'POST', body: new URLSearchParams({ action: 'logout' }) })
-    .then(() => { window.location.reload(); });
-};
+    <main class="content">
+      <section id="dashboardSection" class="section-panel active">
+        <div class="panel-head">
+          <div>
+            <h1>Dashboard</h1>
+            <p class="section-note">Real-time overview from Firestore. The completed-trip count updates by time in Asia/Dhaka.</p>
+          </div>
+          <div class="clock-pill" id="adminClock">--:--:--</div>
+        </div>
 
-function showSection(id) {
-  document.querySelectorAll('.content-section').forEach(el => el.style.display = 'none');
-  document.getElementById(id).style.display = 'block';
-  if (id === 'requests') loadRequests();
-}
-function loadSub(section, action) {
-  const container = document.getElementById(section + '-content');
-  fetch('admin.php', {
-    method: 'POST',
-    body: new URLSearchParams({ action: section + '_' + action })
-  })
-  .then(res => res.text())
-  .then(html => { container.innerHTML = html; });
-}
-function loadRequests() {
-  fetch('admin.php', {
-    method: 'POST',
-    body: new URLSearchParams({ action: 'requests_all' })
-  })
-  .then(res => res.text())
-  .then(html => { document.getElementById('requests-content').innerHTML = html; });
-}
+        <div class="metric-grid">
+          <div class="metric-card"><span class="label">Today's Trips</span><span class="value" id="metricTodayTrips">0</span></div>
+          <div class="metric-card"><span class="label">Completed Trips</span><span class="value" id="metricCompletedTrips">0</span></div>
+          <div class="metric-card"><span class="label">Booked Seats</span><span class="value" id="metricBookedSeats">0</span></div>
+          <div class="metric-card"><span class="label">Available Seats</span><span class="value" id="metricAvailableSeats">0</span></div>
+          <div class="metric-card"><span class="label">Total Earnings</span><span class="value" id="metricEarnings">BDT 0.00</span></div>
+          <div class="metric-card"><span class="label">Total Requests</span><span class="value" id="metricRequests">0</span></div>
+        </div>
 
-// --- Login submit ---
-document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  const form = new FormData(this);
-  form.append("login", "1");
-  fetch('admin.php', { method: 'POST', body: form })
-    .then(res => res.json())
-    .then(data => {
-      if (data.status === 'success') {
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('dashboard-section').style.display = 'flex';
-        showSection('trip');
-      } else {
-        alert('Invalid login credentials');
-      }
-    });
-});
+        <div class="card">
+          <div class="section-toolbar">
+            <div>
+              <h2>Today's Trips</h2>
+              <p class="section-note" id="todayTripsLabel">Trips scheduled for today.</p>
+            </div>
+          </div>
+          <div id="todayTripsTable" class="table-wrap"></div>
+        </div>
+      </section>
 
-// ------- Trip & Ticket CRUD Delegation -------
-document.addEventListener('submit', function(e) {
-  if (e.target && e.target.id === 'createTripForm') {
-    e.preventDefault();
-    let form = new FormData(e.target);
-    form.append('action', 'trip_create_confirm');
-    fetch('admin.php', { method: 'POST', body: form })
-      .then(res => res.text())
-      .then(msg => {
-        document.getElementById('createTripMsg').innerHTML = msg;
-        e.target.reset();
-      });
-  }
-  if (e.target && e.target.id === 'updateTripSearchForm') {
-    e.preventDefault();
-    let trip_id = e.target.trip_id.value;
-    fetch('admin.php', {
-      method: 'POST',
-      body: new URLSearchParams({ action: 'trip_update_form', trip_id })
-    })
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('updateTripFields').innerHTML = html;
-    });
-  }
-  if (e.target && e.target.id === 'updateTripForm') {
-    e.preventDefault();
-    let form = new FormData(e.target);
-    form.append('action', 'trip_update_confirm');
-    fetch('admin.php', { method: 'POST', body: form })
-      .then(res => res.text())
-      .then(msg => {
-        document.getElementById('updateTripMsg').innerHTML = msg;
-      });
-  }
-  if (e.target && e.target.id === 'deleteTripSearchForm') {
-    e.preventDefault();
-    let trip_id = e.target.trip_id.value;
-    fetch('admin.php', {
-      method: 'POST',
-      body: new URLSearchParams({ action: 'trip_delete_confirm', trip_id })
-    })
-    .then(res => res.text())
-    .then(msg => {
-      document.getElementById('deleteTripMsg').innerHTML = msg;
-      e.target.reset();
-    });
-  }
-  if (e.target && e.target.id === 'createTicketForm') {
-    e.preventDefault();
-    let form = new FormData(e.target);
-    form.append('action', 'ticket_create_confirm');
-    fetch('admin.php', { method: 'POST', body: form })
-      .then(res => res.text())
-      .then(msg => {
-        document.getElementById('createTicketMsg').innerHTML = msg;
-        e.target.reset();
-      });
-  }
-  if (e.target && e.target.id === 'updateTicketSearchForm') {
-    e.preventDefault();
-    let ticket_id = e.target.ticket_id.value;
-    fetch('admin.php', {
-      method: 'POST',
-      body: new URLSearchParams({ action: 'ticket_update_form', ticket_id })
-    })
-    .then(res => res.text())
-    .then(html => {
-      document.getElementById('updateTicketFields').innerHTML = html;
-    });
-  }
-  if (e.target && e.target.id === 'updateTicketForm') {
-    e.preventDefault();
-    let form = new FormData(e.target);
-    form.append('action', 'ticket_update_confirm');
-    fetch('admin.php', { method: 'POST', body: form })
-      .then(res => res.text())
-      .then(msg => {
-        document.getElementById('updateTicketMsg').innerHTML = msg;
-      });
-  }
-  if (e.target && e.target.id === 'deleteTicketSearchForm') {
-    e.preventDefault();
-    let ticket_id = e.target.ticket_id.value;
-    fetch('admin.php', {
-      method: 'POST',
-      body: new URLSearchParams({ action: 'ticket_delete_confirm', ticket_id })
-    })
-    .then(res => res.text())
-    .then(msg => {
-      document.getElementById('deleteTicketMsg').innerHTML = msg;
-      e.target.reset();
-    });
-  }
-});
+      <section id="tripsSection" class="section-panel">
+        <div class="panel-head">
+          <div>
+            <h1>Manage Trips</h1>
+            <p class="section-note">Create, view, update and delete trips. Available seats stay in sync with bookings.</p>
+          </div>
+        </div>
 
-function loadCompanyStats(period) {
-  ['daily','monthly','yearly'].forEach(p=>{
-    document.getElementById('stat-btn-'+p).classList.remove('stat-btn-active');
-  });
-  document.getElementById('stat-btn-'+period).classList.add('stat-btn-active');
-  let el = document.getElementById('stats-content');
-  el.innerHTML = "<div style='padding:40px 0;text-align:center;'>Loading stats...</div>";
-  fetch('admin.php', {
-    method: 'POST',
-    body: new URLSearchParams({ action: 'company_stats_' + period })
-  })
-  .then(res => res.text())
-  .then(html => { el.innerHTML = html; });
-}
-document.addEventListener('DOMContentLoaded', ()=> {
-  document.getElementById('stat-btn-daily')?.click();
-});
+        <div class="section-grid">
+          <div class="card">
+            <h2>Create Trip</h2>
+            <form id="tripCreateForm" class="form-grid">
+              <div>
+                <label for="tripCreateId">Trip ID</label>
+                <input id="tripCreateId" name="trip_id" type="text" placeholder="TR37" required />
+              </div>
+              <div>
+                <label for="tripCreateBus">Bus ID</label>
+                <input id="tripCreateBus" name="bus_id" type="text" placeholder="BUS1" required />
+              </div>
+              <div>
+                <label for="tripCreateOrigin">Origin</label>
+                <input id="tripCreateOrigin" name="origin" type="text" placeholder="Dhaka" required />
+              </div>
+              <div>
+                <label for="tripCreateDestination">Destination</label>
+                <input id="tripCreateDestination" name="destination" type="text" placeholder="Chittagong" required />
+              </div>
+              <div>
+                <label for="tripCreateDeparture">Departure Time</label>
+                <input id="tripCreateDeparture" name="departure_time" type="time" required />
+              </div>
+              <div>
+                <label for="tripCreateArrival">Arrival Time</label>
+                <input id="tripCreateArrival" name="arrival_time" type="time" required />
+              </div>
+              <div>
+                <label for="tripCreateFare">Fare</label>
+                <input id="tripCreateFare" name="fare" type="number" min="0" step="0.01" placeholder="1200" required />
+              </div>
+              <div>
+                <label for="tripCreateDate">Travel Date</label>
+                <input id="tripCreateDate" name="travel_date" type="date" required />
+              </div>
+              <div class="full">
+                <label for="tripCreateSeats">Available Seats</label>
+                <input id="tripCreateSeats" name="available_seats" type="number" min="1" step="1" value="28" required />
+              </div>
+              <div class="full form-actions">
+                <button class="primary-btn" type="submit">Create Trip</button>
+              </div>
+            </form>
+            <div id="tripCreateMsg" class="message"></div>
+          </div>
 
-// Requests inline editor
-document.addEventListener('submit', function(e) {
-  if (e.target && e.target.classList.contains('updateStatusForm')) {
-    e.preventDefault();
-    let form = new FormData(e.target);
-    form.append('action', 'update_request_status');
-    fetch('admin.php', { method: 'POST', body: form })
-      .then(res => res.text())
-      .then(() => { loadRequests(); });
-  }
-});
-function showStatusEdit(id, statusValue) {
-  const el = document.getElementById('status-cell-' + id);
-  el.innerHTML = `
-    <form class="updateStatusForm" style="display:inline;">
-      <input type="hidden" name="id" value="\${id}">
-      <input type="text" name="status" value="\${statusValue.replace(/"/g,'&quot;')}" style="width:90px;">
-      <button type="submit">Save</button>
-    </form>
-  `;
-}
-</script>
+          <div class="card">
+            <h2>Update Trip</h2>
+            <p class="form-note">Trip ID stays fixed here to keep live bookings attached to the same trip.</p>
+            <form id="tripUpdateForm" class="form-grid">
+              <div class="full">
+                <label for="tripUpdateId">Trip ID</label>
+                <input id="tripUpdateId" name="trip_id" type="text" readonly />
+              </div>
+              <div>
+                <label for="tripUpdateBus">Bus ID</label>
+                <input id="tripUpdateBus" name="bus_id" type="text" required />
+              </div>
+              <div>
+                <label for="tripUpdateOrigin">Origin</label>
+                <input id="tripUpdateOrigin" name="origin" type="text" required />
+              </div>
+              <div>
+                <label for="tripUpdateDestination">Destination</label>
+                <input id="tripUpdateDestination" name="destination" type="text" required />
+              </div>
+              <div>
+                <label for="tripUpdateDeparture">Departure Time</label>
+                <input id="tripUpdateDeparture" name="departure_time" type="time" required />
+              </div>
+              <div>
+                <label for="tripUpdateArrival">Arrival Time</label>
+                <input id="tripUpdateArrival" name="arrival_time" type="time" required />
+              </div>
+              <div>
+                <label for="tripUpdateFare">Fare</label>
+                <input id="tripUpdateFare" name="fare" type="number" min="0" step="0.01" required />
+              </div>
+              <div>
+                <label for="tripUpdateDate">Travel Date</label>
+                <input id="tripUpdateDate" name="travel_date" type="date" required />
+              </div>
+              <div class="full">
+                <label for="tripUpdateSeats">Available Seats</label>
+                <input id="tripUpdateSeats" name="available_seats" type="number" readonly />
+              </div>
+              <div class="full form-actions">
+                <button class="primary-btn" type="submit">Save Trip</button>
+                <button class="secondary-btn" type="button" id="tripUpdateClearBtn">Clear</button>
+              </div>
+            </form>
+            <div id="tripUpdateMsg" class="message"></div>
+          </div>
+
+          <div class="card">
+            <h2>Delete Trip</h2>
+            <form id="tripDeleteForm" class="form-grid">
+              <div class="full">
+                <label for="tripDeleteId">Trip ID</label>
+                <input id="tripDeleteId" name="trip_id" type="text" placeholder="TR37" required />
+              </div>
+              <div class="full form-actions">
+                <button class="primary-btn" type="submit">Delete Trip</button>
+                <button class="secondary-btn" type="button" id="tripDeleteClearBtn">Clear</button>
+              </div>
+            </form>
+            <div id="tripDeleteMsg" class="message"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Trip List</h2>
+          <div id="tripsTableContainer" class="table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="ticketsSection" class="section-panel">
+        <div class="panel-head">
+          <div>
+            <h1>Manage Tickets</h1>
+            <p class="section-note">Create, read, update and delete booked seats. These update the trip seat counts in real time.</p>
+          </div>
+        </div>
+
+        <div class="section-grid">
+          <div class="card">
+            <h2>Create Ticket</h2>
+            <form id="ticketCreateForm" class="form-grid">
+              <div>
+                <label for="ticketCreateTripId">Trip ID</label>
+                <input id="ticketCreateTripId" name="trip_id" type="text" placeholder="TR5" required />
+              </div>
+              <div>
+                <label for="ticketCreateSeat">Seat Label</label>
+                <input id="ticketCreateSeat" name="seat_label" type="text" placeholder="A1" required />
+              </div>
+              <div>
+                <label for="ticketCreatePassenger">Passenger Name</label>
+                <input id="ticketCreatePassenger" name="passenger_name" type="text" placeholder="Passenger Name" required />
+              </div>
+              <div>
+                <label for="ticketCreatePhone">Phone</label>
+                <input id="ticketCreatePhone" name="phone" type="text" placeholder="01XXXXXXXXX" required />
+              </div>
+              <div>
+                <label for="ticketCreateEmail">Email</label>
+                <input id="ticketCreateEmail" name="email" type="email" placeholder="name@example.com" required />
+              </div>
+              <div>
+                <label for="ticketCreateAddress">Address</label>
+                <input id="ticketCreateAddress" name="address" type="text" placeholder="Address" required />
+              </div>
+              <div>
+                <label for="ticketCreateBoarding">Boarding Point</label>
+                <input id="ticketCreateBoarding" name="boarding_point" type="text" placeholder="Boarding Point" required />
+              </div>
+              <div>
+                <label for="ticketCreateDropping">Dropping Point</label>
+                <input id="ticketCreateDropping" name="dropping_point" type="text" placeholder="Dropping Point" required />
+              </div>
+              <div>
+                <label for="ticketCreatePayment">Payment Method</label>
+                <select id="ticketCreatePayment" name="payment_method" required>
+                  <option value="">Select</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Bkash">Bkash</option>
+                  <option value="Card">Card</option>
+                </select>
+              </div>
+              <div>
+                <label for="ticketCreatePaymentInfo">Payment Info</label>
+                <input id="ticketCreatePaymentInfo" name="payment_info" type="text" placeholder="Bkash number / card ref" required />
+              </div>
+              <div class="full form-actions">
+                <button class="primary-btn" type="submit">Create Ticket</button>
+              </div>
+            </form>
+            <div id="ticketCreateMsg" class="message"></div>
+          </div>
+
+          <div class="card">
+            <h2>Update Ticket</h2>
+            <p class="form-note">Ticket ID is the Firestore document ID. Passenger details can be edited here.</p>
+            <form id="ticketUpdateForm" class="form-grid">
+              <div class="full">
+                <label for="ticketUpdateId">Ticket ID</label>
+                <input id="ticketUpdateId" name="ticket_id" type="text" readonly />
+              </div>
+              <div>
+                <label for="ticketUpdateTripId">Trip ID</label>
+                <input id="ticketUpdateTripId" name="trip_id" type="text" readonly />
+              </div>
+              <div>
+                <label for="ticketUpdateSeat">Seat Label</label>
+                <input id="ticketUpdateSeat" name="seat_label" type="text" readonly />
+              </div>
+              <div>
+                <label for="ticketUpdatePassenger">Passenger Name</label>
+                <input id="ticketUpdatePassenger" name="passenger_name" type="text" required />
+              </div>
+              <div>
+                <label for="ticketUpdatePhone">Phone</label>
+                <input id="ticketUpdatePhone" name="phone" type="text" required />
+              </div>
+              <div>
+                <label for="ticketUpdateEmail">Email</label>
+                <input id="ticketUpdateEmail" name="email" type="email" required />
+              </div>
+              <div>
+                <label for="ticketUpdateAddress">Address</label>
+                <input id="ticketUpdateAddress" name="address" type="text" required />
+              </div>
+              <div>
+                <label for="ticketUpdateBoarding">Boarding Point</label>
+                <input id="ticketUpdateBoarding" name="boarding_point" type="text" required />
+              </div>
+              <div>
+                <label for="ticketUpdateDropping">Dropping Point</label>
+                <input id="ticketUpdateDropping" name="dropping_point" type="text" required />
+              </div>
+              <div>
+                <label for="ticketUpdatePayment">Payment Method</label>
+                <select id="ticketUpdatePayment" name="payment_method" required>
+                  <option value="Cash">Cash</option>
+                  <option value="Bkash">Bkash</option>
+                  <option value="Card">Card</option>
+                </select>
+              </div>
+              <div>
+                <label for="ticketUpdatePaymentInfo">Payment Info</label>
+                <input id="ticketUpdatePaymentInfo" name="payment_info" type="text" required />
+              </div>
+              <div class="full form-actions">
+                <button class="primary-btn" type="submit">Save Ticket</button>
+                <button class="secondary-btn" type="button" id="ticketUpdateClearBtn">Clear</button>
+              </div>
+            </form>
+            <div id="ticketUpdateMsg" class="message"></div>
+          </div>
+
+          <div class="card">
+            <h2>Delete Ticket</h2>
+            <form id="ticketDeleteForm" class="form-grid">
+              <div class="full">
+                <label for="ticketDeleteId">Ticket ID</label>
+                <input id="ticketDeleteId" name="ticket_id" type="text" placeholder="TR5_A1" required />
+              </div>
+              <div class="full form-actions">
+                <button class="primary-btn" type="submit">Delete Ticket</button>
+                <button class="secondary-btn" type="button" id="ticketDeleteClearBtn">Clear</button>
+              </div>
+            </form>
+            <div id="ticketDeleteMsg" class="message"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Ticket List</h2>
+          <div id="ticketsTableContainer" class="table-wrap"></div>
+        </div>
+      </section>
+
+      <section id="requestsSection" class="section-panel">
+        <div class="panel-head">
+          <div>
+            <h1>Manage Requests</h1>
+            <p class="section-note">Counter manager requests arrive here in real time from Firestore.</p>
+          </div>
+        </div>
+
+        <div class="section-grid">
+          <div class="card">
+            <h2>Create Request</h2>
+            <form id="requestCreateForm" class="form-grid">
+              <div>
+                <label for="requestCreateSubject">Subject</label>
+                <input id="requestCreateSubject" name="subject" type="text" placeholder="Subject" required />
+              </div>
+              <div>
+                <label for="requestCreateRequestedBy">Requested By</label>
+                <input id="requestCreateRequestedBy" name="requested_by" type="text" placeholder="Manager ID" required />
+              </div>
+              <div class="full">
+                <label for="requestCreateDetails">Details</label>
+                <textarea id="requestCreateDetails" name="details" placeholder="Details" required></textarea>
+              </div>
+              <div>
+                <label for="requestCreateStatus">Status</label>
+                <select id="requestCreateStatus" name="status" required>
+                  <option value="Pending">Pending</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+              <div class="full form-actions">
+                <button class="primary-btn" type="submit">Create Request</button>
+              </div>
+            </form>
+            <div id="requestCreateMsg" class="message"></div>
+          </div>
+
+          <div class="card">
+            <h2>Update Request</h2>
+            <form id="requestUpdateForm" class="form-grid">
+              <div class="full">
+                <label for="requestUpdateId">Request ID</label>
+                <input id="requestUpdateId" name="request_id" type="text" readonly />
+              </div>
+              <div>
+                <label for="requestUpdateSubject">Subject</label>
+                <input id="requestUpdateSubject" name="subject" type="text" required />
+              </div>
+              <div>
+                <label for="requestUpdateRequestedBy">Requested By</label>
+                <input id="requestUpdateRequestedBy" name="requested_by" type="text" required />
+              </div>
+              <div class="full">
+                <label for="requestUpdateDetails">Details</label>
+                <textarea id="requestUpdateDetails" name="details" required></textarea>
+              </div>
+              <div>
+                <label for="requestUpdateStatus">Status</label>
+                <select id="requestUpdateStatus" name="status" required>
+                  <option value="Pending">Pending</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+              <div class="full form-actions">
+                <button class="primary-btn" type="submit">Save Request</button>
+                <button class="secondary-btn" type="button" id="requestUpdateClearBtn">Clear</button>
+              </div>
+            </form>
+            <div id="requestUpdateMsg" class="message"></div>
+          </div>
+
+          <div class="card">
+            <h2>Delete Request</h2>
+            <form id="requestDeleteForm" class="form-grid">
+              <div class="full">
+                <label for="requestDeleteId">Request ID</label>
+                <input id="requestDeleteId" name="request_id" type="text" placeholder="Auto-generated Firestore ID" required />
+              </div>
+              <div class="full form-actions">
+                <button class="primary-btn" type="submit">Delete Request</button>
+                <button class="secondary-btn" type="button" id="requestDeleteClearBtn">Clear</button>
+              </div>
+            </form>
+            <div id="requestDeleteMsg" class="message"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Request List</h2>
+          <div id="requestsTableContainer" class="table-wrap"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="admin.js"></script>
 </body>
 </html>
-
-//yes
