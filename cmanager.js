@@ -1,813 +1,627 @@
 import { db } from './firebase-init.js';
 import {
   collection,
-  query,
-  orderBy,
-  where,
-  onSnapshot,
-  getDocs,
-  getDoc,
   doc,
   setDoc,
   updateDoc,
   deleteDoc,
+  getDoc,
+  onSnapshot,
   serverTimestamp,
-  increment
+  runTransaction,
+  increment,
 } from 'https://www.gstatic.com/firebasejs/12.17.0/firebase-firestore.js';
 
-const credentials = { userId: 'CM1', password: 'CD1' };
-let loggedInUser = null;
-let tripsData = [];
-let ticketsData = [];
-let requestsData = [];
-let listenersStarted = false;
+const CM_USER = 'CM1';
+const CM_PASS = 'CD1';
+const SESSION_KEY = 'btbms-cmanager-auth';
+const DHAKA_TIME_ZONE = 'Asia/Dhaka';
+const DEFAULT_SEATS = 28;
 
-const screens = {
-  login: document.getElementById('loginScreen'),
-  app: document.getElementById('appScreen')
+const state = {
+  trips: [],
+  bookings: [],
+  requests: [],
+  ticketFilter: '',
+  loggedInUserId: '',
 };
 
-const sectionIds = [
-  'dashboardView',
-  'tripsView',
-  'ticketsView',
-  'requestsView'
-];
-
-const navButtons = {
-  dashboard: document.getElementById('navDashboard'),
-  trips: document.getElementById('navTrips'),
-  tickets: document.getElementById('navTickets'),
-  requests: document.getElementById('navRequests')
+const els = {
+  loginView: document.getElementById('loginView'),
+  appView: document.getElementById('appView'),
+  loginForm: document.getElementById('cmLoginForm'),
+  loginMessage: document.getElementById('loginMessage'),
+  cmClock: document.getElementById('cmClock'),
+  dashboardSection: document.getElementById('dashboardSection'),
+  tripsSection: document.getElementById('tripsSection'),
+  ticketsSection: document.getElementById('ticketsSection'),
+  requestsSection: document.getElementById('requestsSection'),
+  todayTripsTable: document.getElementById('todayTripsTable'),
+  tripsTableContainer: document.getElementById('tripsTableContainer'),
+  ticketsTableContainer: document.getElementById('ticketsTableContainer'),
+  requestsTableContainer: document.getElementById('requestsTableContainer'),
+  metricTodayTrips: document.getElementById('metricTodayTrips'),
+  metricCompletedTrips: document.getElementById('metricCompletedTrips'),
+  metricBookedSeats: document.getElementById('metricBookedSeats'),
+  metricAvailableSeats: document.getElementById('metricAvailableSeats'),
+  metricEarnings: document.getElementById('metricEarnings'),
+  metricRequests: document.getElementById('metricRequests'),
+  todayTripsLabel: document.getElementById('todayTripsLabel'),
 };
 
-const loginForm = document.getElementById('loginForm');
-const loginError = document.getElementById('loginError');
-const dashboardGreeting = document.getElementById('dashboardGreeting');
-
-const dashboardFields = {
-  todaysTrips: document.getElementById('todaysTrips'),
-  completedTrips: document.getElementById('completedTrips'),
-  bookedSeats: document.getElementById('bookedSeats'),
-  availableSeats: document.getElementById('availableSeats'),
-  earnings: document.getElementById('totalEarnings'),
-  requestCount: document.getElementById('totalRequests')
-};
-
-const tripTableBody = document.getElementById('tripsTableBody');
-const tripForm = document.getElementById('tripCreateForm');
-const tripEditSection = document.getElementById('tripEditSection');
-const tripEditForm = document.getElementById('tripEditForm');
-const tripEditMessage = document.getElementById('tripEditMessage');
-const tripTableMessage = document.getElementById('tripTableMessage');
-
-const ticketTableBody = document.getElementById('ticketsTableBody');
-const ticketForm = document.getElementById('ticketCreateForm');
-const ticketEditSection = document.getElementById('ticketEditSection');
-const ticketEditForm = document.getElementById('ticketEditForm');
-const ticketEditMessage = document.getElementById('ticketEditMessage');
-const ticketTableMessage = document.getElementById('ticketTableMessage');
-const tripSelectForTicket = document.getElementById('ticket_trip_id');
-
-const requestForm = document.getElementById('requestCreateForm');
-const requestEditSection = document.getElementById('requestEditSection');
-const requestEditForm = document.getElementById('requestEditForm');
-const requestTableBody = document.getElementById('requestsTableBody');
-const requestMessage = document.getElementById('requestMessage');
-
-const tripsCollection = collection(db, 'trips');
-const ticketsCollection = collection(db, 'tickets');
-const requestsCollection = collection(db, 'requests');
-
-function formatDate(date) {
-  return date.toLocaleDateString('en-CA');
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-function formatDateTime(date) {
-  return `${date.toLocaleDateString('en-CA')} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+function formatMoney(value) {
+  return `BDT ${Number(value || 0).toFixed(2)}`;
 }
 
-function parseTime(timeString) {
-  const [hours, minutes] = (timeString || '00:00').split(':').map(Number);
-  return (hours || 0) * 60 + (minutes || 0);
-}
+function getDhakaDateTime(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: DHAKA_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
 
-function showScreen(key) {
-  Object.values(screens).forEach(section => section.classList.remove('screen--active'));
-  screens[key].classList.add('screen--active');
-}
-
-function showSection(sectionId) {
-  sectionIds.forEach(id => document.getElementById(id).classList.remove('view-active'));
-  if (sectionId) {
-    document.getElementById(sectionId).classList.add('view-active');
+  const lookup = {};
+  for (const part of parts) {
+    if (part.type !== 'literal') lookup[part.type] = part.value;
   }
 
-  Object.values(navButtons).forEach(btn => btn.classList.remove('active'));
-  if (sectionId === 'dashboardView') navButtons.dashboard.classList.add('active');
-  if (sectionId === 'tripsView') navButtons.trips.classList.add('active');
-  if (sectionId === 'ticketsView') navButtons.tickets.classList.add('active');
-  if (sectionId === 'requestsView') navButtons.requests.classList.add('active');
+  return {
+    date: `${lookup.year}-${lookup.month}-${lookup.day}`,
+    time: `${lookup.hour}:${lookup.minute}:${lookup.second}`,
+  };
 }
 
-function showTemporaryMessage(element, text, type = 'info') {
-  element.textContent = text;
-  element.className = type === 'error' ? 'message message--error' : 'message message--success';
-  setTimeout(() => {
-    element.textContent = '';
-    element.className = 'message';
-  }, 4100);
+function setMessage(id, message, type = '') {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = message || '';
+  el.className = `message ${type}`.trim();
 }
 
-async function handleLogin(event) {
-  event.preventDefault();
-  const userId = loginForm.userid.value.trim();
-  const password = loginForm.password.value.trim();
-
-  if (userId === credentials.userId && password === credentials.password) {
-    loggedInUser = credentials.userId;
-    loginError.textContent = '';
-    dashboardGreeting.textContent = `Welcome back, ${loggedInUser}`;
-    showScreen('app');
-    showSection('dashboardView');
-    if (!listenersStarted) {
-      await seedSampleTrips();
-      startRealtimeListeners();
-      startClock();
-      listenersStarted = true;
-    }
-  } else {
-    loginError.textContent = 'Invalid credentials. Use CM1 / CD1.';
-  }
+function setLoginMessage(message) {
+  els.loginMessage.textContent = message || '';
 }
 
-async function seedSampleTrips() {
-  const sampleQuery = query(tripsCollection, orderBy('travel_date'), orderBy('departure_time'));
-  const snapshot = await getDocs(sampleQuery);
-  if (!snapshot.empty) {
-    return;
-  }
-
-  const today = new Date();
-  const todayLabel = formatDate(today);
-  const nextDayLabel = formatDate(new Date(today.getTime() + 86400000));
-  const sampleTrips = [
-    {
-      id: `T-${todayLabel}-A`,
-      origin: 'Dhaka',
-      destination: 'Chattogram',
-      bus_id: 'B100',
-      travel_date: todayLabel,
-      departure_time: '09:00',
-      arrival_time: '13:00',
-      fare: 420,
-      total_seats: 40,
-      available_seats: 40
-    },
-    {
-      id: `T-${todayLabel}-B`,
-      origin: 'Dhaka',
-      destination: 'Sylhet',
-      bus_id: 'B101',
-      travel_date: todayLabel,
-      departure_time: '14:00',
-      arrival_time: '18:00',
-      fare: 480,
-      total_seats: 40,
-      available_seats: 40
-    },
-    {
-      id: `T-${todayLabel}-C`,
-      origin: 'Dhaka',
-      destination: 'Rajshahi',
-      bus_id: 'B102',
-      travel_date: todayLabel,
-      departure_time: '19:30',
-      arrival_time: '23:30',
-      fare: 500,
-      total_seats: 40,
-      available_seats: 40
-    },
-    {
-      id: `T-${nextDayLabel}-A`,
-      origin: 'Dhaka',
-      destination: 'Khulna',
-      bus_id: 'B103',
-      travel_date: nextDayLabel,
-      departure_time: '08:00',
-      arrival_time: '12:00',
-      fare: 440,
-      total_seats: 40,
-      available_seats: 40
-    }
-  ];
-
-  for (const trip of sampleTrips) {
-    const tripRef = doc(tripsCollection, trip.id);
-    await setDoc(tripRef, {
-      trip_id: trip.id,
-      origin: trip.origin,
-      destination: trip.destination,
-      bus_id: trip.bus_id,
-      travel_date: trip.travel_date,
-      departure_time: trip.departure_time,
-      arrival_time: trip.arrival_time,
-      fare: trip.fare,
-      total_seats: trip.total_seats,
-      available_seats: trip.available_seats,
-      created_at: serverTimestamp()
-    });
-  }
+function showLogin() {
+  els.loginView.classList.remove('hidden');
+  els.appView.classList.add('hidden');
 }
 
-function bindButtons() {
-  navButtons.dashboard.addEventListener('click', () => showSection('dashboardView'));
-  navButtons.trips.addEventListener('click', () => showSection('tripsView'));
-  navButtons.tickets.addEventListener('click', () => showSection('ticketsView'));
-  navButtons.requests.addEventListener('click', () => showSection('requestsView'));
+function showApp() {
+  els.loginView.classList.add('hidden');
+  els.appView.classList.remove('hidden');
+}
 
-  document.getElementById('logoutBtn').addEventListener('click', () => {
-    loggedInUser = null;
-    showScreen('login');
-    loginForm.reset();
-    tripEditSection.classList.add('hidden');
-    ticketEditSection.classList.add('hidden');
-    requestEditSection.classList.add('hidden');
+function setActiveSection(sectionName) {
+  const sections = {
+    dashboard: els.dashboardSection,
+    trips: els.tripsSection,
+    tickets: els.ticketsSection,
+    requests: els.requestsSection,
+  };
+
+  Object.values(sections).forEach(section => section.classList.remove('active'));
+  sections[sectionName].classList.add('active');
+
+  document.querySelectorAll('.sidebar-link').forEach(button => {
+    button.classList.toggle('active', button.dataset.section === sectionName);
   });
 }
 
-function buildReference(value) {
-  return value ? value.trim() : '';
+function renderClock() {
+  if (!els.cmClock) return;
+  const now = new Intl.DateTimeFormat('en-GB', {
+    timeZone: DHAKA_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(new Date());
+  els.cmClock.textContent = now;
 }
 
-function getCurrentTimeMinutes() {
-  // Use Asia/Dhaka timezone for completed trips calculation
-  try {
-    const parts = new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Dhaka'
-    }).formatToParts(new Date());
-    const hourPart = parts.find(p => p.type === 'hour')?.value || '00';
-    const minutePart = parts.find(p => p.type === 'minute')?.value || '00';
-    const hours = parseInt(hourPart, 10);
-    const minutes = parseInt(minutePart, 10);
-    return hours * 60 + minutes;
-  } catch (e) {
-    const now = new Date();
-    return now.getHours() * 60 + now.getMinutes();
-  }
+function getFareMap() {
+  const map = new Map();
+  for (const trip of state.trips) map.set(trip.trip_id, Number(trip.fare || 0));
+  return map;
 }
 
-function buildTripRow(trip) {
-  return `
-    <tr>
-      <td>${trip.trip_id}</td>
-      <td>${trip.travel_date}</td>
-      <td>${trip.departure_time}</td>
-      <td>${trip.arrival_time}</td>
-      <td>${trip.bus_id}</td>
-      <td>${trip.origin}</td>
-      <td>${trip.destination}</td>
-      <td>${trip.fare}</td>
-      <td>${trip.available_seats}</td>
-      <td class="actions">
-        <button data-action="edit-trip" data-id="${trip.trip_id}">Edit</button>
-        <button data-action="delete-trip" data-id="${trip.trip_id}">Delete</button>
-      </td>
-    </tr>
-  `;
-}
+// ---------------- Dashboard ----------------
+function renderDashboard() {
+  const now = getDhakaDateTime();
+  const fareMap = getFareMap();
 
-function buildTicketRow(ticket) {
-  return `
-    <tr>
-      <td>${ticket.ticket_id}</td>
-      <td>${ticket.trip_id}</td>
-      <td>${ticket.travel_date || ''}</td>
-      <td>${ticket.seat_number}</td>
-      <td>${ticket.passenger_name}</td>
-      <td>${ticket.phone}</td>
-      <td>${ticket.email}</td>
-      <td>${ticket.boarding_point}</td>
-      <td>${ticket.dropping_point}</td>
-      <td>${ticket.payment_method}</td>
-      <td>${ticket.fare ?? ''}</td>
-      <td>${ticket.booking_time ?? ''}</td>
-      <td class="actions">
-        <button data-action="edit-ticket" data-id="${ticket.ticket_id}">Edit</button>
-        <button data-action="delete-ticket" data-id="${ticket.ticket_id}">Delete</button>
-      </td>
-    </tr>
-  `;
-}
+  const todayTrips = state.trips
+    .filter(trip => trip.travel_date === now.date)
+    .sort((a, b) => String(a.departure_time || '').localeCompare(String(b.departure_time || '')));
 
-function buildRequestRow(request) {
-  const created = request.created_at && request.created_at.seconds ? new Date(request.created_at.seconds * 1000).toLocaleString() : '';
-  return `
-    <tr>
-      <td>${request.request_id}</td>
-      <td>${request.subject}</td>
-      <td>${request.details}</td>
-      <td>${request.status}</td>
-      <td>${created}</td>
-      <td class="actions">
-        <button data-action="edit-request" data-id="${request.request_id}">Edit</button>
-        <button data-action="delete-request" data-id="${request.request_id}">Delete</button>
-      </td>
-    </tr>
-  `;
-}
+  const completedTrips = todayTrips.filter(trip => String(trip.departure_time || '') <= now.time);
+  const totalBookedSeats = state.bookings.length;
+  const totalAvailableSeats = state.trips.reduce((sum, trip) => sum + Number(trip.available_seats || 0), 0);
+  const totalEarnings = state.bookings.reduce((sum, booking) => sum + (fareMap.get(booking.trip_id) || 0), 0);
 
-async function handleTripCreate(event) {
-  event.preventDefault();
+  els.metricTodayTrips.textContent = String(todayTrips.length);
+  els.metricCompletedTrips.textContent = String(completedTrips.length);
+  els.metricBookedSeats.textContent = String(totalBookedSeats);
+  els.metricAvailableSeats.textContent = String(totalAvailableSeats);
+  els.metricEarnings.textContent = formatMoney(totalEarnings);
+  els.metricRequests.textContent = String(state.requests.length);
+  els.todayTripsLabel.textContent = `Showing ${todayTrips.length} trip(s) for ${now.date}. Completed count is based on the current Dhaka time ${now.time}.`;
 
-  const tripId = buildReference(tripForm.trip_id.value);
-  const origin = buildReference(tripForm.origin.value);
-  const destination = buildReference(tripForm.destination.value);
-  const travelDate = buildReference(tripForm.travel_date.value);
-  const departureTime = buildReference(tripForm.departure_time.value);
-  const arrivalTime = buildReference(tripForm.arrival_time.value);
-  const busId = buildReference(tripForm.bus_id.value);
-  const fare = Number(tripForm.fare.value || '0');
-  const seats = Number(tripForm.total_seats.value || '40');
-
-  if (!tripId || !origin || !destination || !travelDate || !departureTime || !arrivalTime || !busId || fare <= 0) {
-    showTemporaryMessage(tripTableMessage, 'Provide every required trip field before saving.', 'error');
+  if (!todayTrips.length) {
+    els.todayTripsTable.innerHTML = '<p class="section-note">No trips scheduled today.</p>';
     return;
   }
 
-  try {
-    const tripRef = doc(tripsCollection, tripId);
-    await setDoc(tripRef, {
-      trip_id: tripId,
-      origin,
-      destination,
-      travel_date: travelDate,
-      departure_time: departureTime,
-      arrival_time: arrivalTime,
-      bus_id: busId,
-      fare,
-      total_seats: seats,
-      available_seats: seats,
-      created_at: serverTimestamp()
-    });
-    tripForm.reset();
-    showTemporaryMessage(tripTableMessage, 'Trip created successfully.');
-  } catch (error) {
-    showTemporaryMessage(tripTableMessage, `Trip creation failed: ${error.message}`, 'error');
+  const rows = todayTrips.map(trip => {
+    const status = String(trip.departure_time || '') <= now.time ? 'Completed' : 'Upcoming';
+    return `
+      <tr>
+        <td>${escapeHtml(trip.trip_id)}</td>
+        <td>${escapeHtml(trip.origin)}</td>
+        <td>${escapeHtml(trip.destination)}</td>
+        <td>${escapeHtml(trip.departure_time)}</td>
+        <td>${escapeHtml(trip.arrival_time)}</td>
+        <td>${escapeHtml(trip.bus_id)}</td>
+        <td>${escapeHtml(trip.travel_date)}</td>
+        <td>${escapeHtml(status)}</td>
+        <td>${escapeHtml(trip.available_seats ?? 0)}</td>
+      </tr>`;
+  }).join('');
+
+  els.todayTripsTable.innerHTML = `
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Trip ID</th><th>From</th><th>To</th><th>Departure</th><th>Arrival</th><th>Bus</th><th>Date</th><th>Status</th><th>Available Seats</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ---------------- View Trips (read-only) ----------------
+function renderTripsTable() {
+  if (!state.trips.length) {
+    els.tripsTableContainer.innerHTML = '<p class="section-note">No trips found.</p>';
+    return;
   }
+
+  const bookedByTrip = new Map();
+  for (const booking of state.bookings) {
+    bookedByTrip.set(booking.trip_id, (bookedByTrip.get(booking.trip_id) || 0) + 1);
+  }
+
+  const rows = state.trips.map(trip => `
+    <tr>
+      <td>${escapeHtml(trip.trip_id)}</td>
+      <td>${escapeHtml(trip.bus_id)}</td>
+      <td>${escapeHtml(trip.origin)}</td>
+      <td>${escapeHtml(trip.destination)}</td>
+      <td>${escapeHtml(trip.departure_time)}</td>
+      <td>${escapeHtml(trip.arrival_time)}</td>
+      <td>${escapeHtml(trip.travel_date)}</td>
+      <td>${escapeHtml(trip.fare)}</td>
+      <td>${escapeHtml(bookedByTrip.get(trip.trip_id) || 0)}</td>
+      <td>${escapeHtml(trip.available_seats ?? 0)}</td>
+    </tr>
+  `).join('');
+
+  els.tripsTableContainer.innerHTML = `
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Trip ID</th><th>Bus</th><th>From</th><th>To</th><th>Departure</th><th>Arrival</th><th>Date</th><th>Fare</th><th>Booked</th><th>Available</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function handleTripSearch(event) {
+  event.preventDefault();
+  const tripId = String(new FormData(event.target).get('trip_id') || '').trim();
+  const trip = state.trips.find(item => item.trip_id === tripId);
+  const resultEl = document.getElementById('tripSearchResult');
+
+  if (!trip) {
+    resultEl.innerHTML = `<p class="section-note">No trip found with ID "${escapeHtml(tripId)}".</p>`;
+    return;
+  }
+
+  const booked = state.bookings.filter(b => b.trip_id === tripId).length;
+  const capacity = Number(trip.total_seats ?? DEFAULT_SEATS);
+  const remaining = Number(trip.available_seats ?? (capacity - booked));
+
+  resultEl.innerHTML = `
+    <div class="summary-item"><span class="k">Trip ID</span><span class="v">${escapeHtml(trip.trip_id)}</span></div>
+    <div class="summary-item"><span class="k">Route</span><span class="v">${escapeHtml(trip.origin)} &rarr; ${escapeHtml(trip.destination)}</span></div>
+    <div class="summary-item"><span class="k">Departure / Arrival</span><span class="v">${escapeHtml(trip.departure_time)} - ${escapeHtml(trip.arrival_time)}</span></div>
+    <div class="summary-item"><span class="k">Booked Seats</span><span class="v">${booked}</span></div>
+    <div class="summary-item"><span class="k">Available Seats</span><span class="v">${remaining}</span></div>
+    <div class="summary-item"><span class="k">Fare</span><span class="v">${formatMoney(trip.fare)}</span></div>
+  `;
+}
+
+// ---------------- Manage Tickets (full CRUD) ----------------
+function renderTicketsTable() {
+  const filter = state.ticketFilter.trim();
+  const rows = filter
+    ? state.bookings.filter(t => t.trip_id === filter)
+    : state.bookings;
+
+  document.getElementById('ticketsFilterLabel').textContent = filter
+    ? `Showing tickets for Trip ID "${filter}".`
+    : 'Showing all tickets.';
+
+  if (!rows.length) {
+    els.ticketsTableContainer.innerHTML = '<p class="section-note">No tickets found.</p>';
+    return;
+  }
+
+  const html = rows.map(ticket => `
+    <tr>
+      <td>${escapeHtml(ticket.ticket_id || ticket.id)}</td>
+      <td>${escapeHtml(ticket.trip_id)}</td>
+      <td>${escapeHtml(ticket.seat_label)}</td>
+      <td>${escapeHtml(ticket.passenger_name)}</td>
+      <td>${escapeHtml(ticket.phone || ticket.contact_number)}</td>
+      <td>${escapeHtml(ticket.email)}</td>
+      <td>${escapeHtml(ticket.address)}</td>
+      <td>${escapeHtml(ticket.boarding_point)}</td>
+      <td>${escapeHtml(ticket.dropping_point)}</td>
+      <td>${escapeHtml(ticket.payment_method)}</td>
+      <td>${escapeHtml(ticket.payment_info)}</td>
+      <td>
+        <button class="mini-btn alt" type="button" onclick="loadTicketToForm('${escapeHtml(ticket.ticket_id || ticket.id)}')">Edit</button>
+        <button class="mini-btn danger" type="button" onclick="loadTicketDelete('${escapeHtml(ticket.ticket_id || ticket.id)}')">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+
+  els.ticketsTableContainer.innerHTML = `
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Ticket ID</th><th>Trip ID</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Email</th><th>Address</th><th>Boarding</th><th>Dropping</th><th>Payment</th><th>Payment Info</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${html}</tbody>
+    </table>`;
+}
+
+function loadTicketToForm(ticketId) {
+  const ticket = state.bookings.find(item => (item.ticket_id || item.id) === ticketId);
+  if (!ticket) return;
+  setActiveSection('tickets');
+  document.getElementById('ticketUpdateId').value = ticket.ticket_id || ticket.id || '';
+  document.getElementById('ticketUpdateTripId').value = ticket.trip_id || '';
+  document.getElementById('ticketUpdateSeat').value = ticket.seat_label || '';
+  document.getElementById('ticketUpdatePassenger').value = ticket.passenger_name || '';
+  document.getElementById('ticketUpdatePhone').value = ticket.phone || ticket.contact_number || '';
+  document.getElementById('ticketUpdateEmail').value = ticket.email || '';
+  document.getElementById('ticketUpdateAddress').value = ticket.address || '';
+  document.getElementById('ticketUpdateBoarding').value = ticket.boarding_point || '';
+  document.getElementById('ticketUpdateDropping').value = ticket.dropping_point || '';
+  document.getElementById('ticketUpdatePayment').value = ticket.payment_method || 'Cash';
+  document.getElementById('ticketUpdatePaymentInfo').value = ticket.payment_info || '';
+}
+
+function loadTicketDelete(ticketId) {
+  setActiveSection('tickets');
+  document.getElementById('ticketDeleteId').value = ticketId;
+}
+
+async function handleTicketFetch(event) {
+  event.preventDefault();
+  const ticketId = String(new FormData(event.target).get('ticket_id') || '').trim();
+  if (!ticketId) return;
+  const ticket = state.bookings.find(item => (item.ticket_id || item.id) === ticketId);
+  if (!ticket) {
+    setMessage('ticketUpdateMsg', `Ticket ${ticketId} not found.`, 'error');
+    return;
+  }
+  loadTicketToForm(ticketId);
+  setMessage('ticketUpdateMsg', '', '');
 }
 
 async function handleTicketCreate(event) {
   event.preventDefault();
+  const form = new FormData(event.target);
+  const tripId = String(form.get('trip_id') || '').trim();
+  const seatLabel = String(form.get('seat_label') || '').trim().toUpperCase();
+  const ticketId = `${tripId}_${seatLabel}`;
 
-  const tripId = buildReference(ticketForm.trip_id.value);
-  const seatNumber = buildReference(ticketForm.seat_number.value);
-  const passengerName = buildReference(ticketForm.passenger_name.value);
-  const phone = buildReference(ticketForm.phone.value);
-  const email = buildReference(ticketForm.email.value);
-  const boardingPoint = buildReference(ticketForm.boarding_point.value);
-  const droppingPoint = buildReference(ticketForm.dropping_point.value);
-  const paymentMethod = buildReference(ticketForm.payment_method.value);
-  const paymentInfo = buildReference(ticketForm.payment_info.value);
+  try {
+    await runTransaction(db, async transaction => {
+      const tripRef = doc(db, 'trips', tripId);
+      const ticketRef = doc(db, 'bookings', ticketId);
+      const tripSnap = await transaction.get(tripRef);
+      if (!tripSnap.exists()) throw new Error('Trip not found.');
 
-  if (!tripId || !seatNumber || !passengerName || !phone || !email || !boardingPoint || !droppingPoint || !paymentMethod || !paymentInfo) {
-    showTemporaryMessage(ticketTableMessage, 'Complete all ticket fields before saving.', 'error');
+      const bookingSnap = await transaction.get(ticketRef);
+      if (bookingSnap.exists()) throw new Error('That seat is already booked.');
+
+      const availableSeats = Number(tripSnap.data().available_seats ?? DEFAULT_SEATS);
+      if (availableSeats <= 0) throw new Error('No available seats remain for this trip.');
+
+      transaction.set(ticketRef, {
+        ticket_id: ticketId,
+        trip_id: tripId,
+        seat_label: seatLabel,
+        passenger_name: String(form.get('passenger_name') || '').trim(),
+        phone: String(form.get('phone') || '').trim(),
+        email: String(form.get('email') || '').trim(),
+        address: String(form.get('address') || '').trim(),
+        boarding_point: String(form.get('boarding_point') || '').trim(),
+        dropping_point: String(form.get('dropping_point') || '').trim(),
+        payment_method: String(form.get('payment_method') || '').trim(),
+        payment_info: String(form.get('payment_info') || '').trim(),
+        booked_by: state.loggedInUserId || CM_USER,
+        booking_time: serverTimestamp(),
+      });
+      transaction.update(tripRef, {
+        available_seats: increment(-1),
+        updated_at: serverTimestamp(),
+      });
+    });
+    setMessage('ticketCreateMsg', `Ticket ${ticketId} created.`, 'success');
+    event.target.reset();
+  } catch (error) {
+    setMessage('ticketCreateMsg', error.message || 'Failed to create ticket.', 'error');
+  }
+}
+
+async function handleTicketUpdate(event) {
+  event.preventDefault();
+  const form = new FormData(event.target);
+  const ticketId = String(form.get('ticket_id') || '').trim();
+  if (!ticketId) return;
+
+  try {
+    await updateDoc(doc(db, 'bookings', ticketId), {
+      passenger_name: String(form.get('passenger_name') || '').trim(),
+      phone: String(form.get('phone') || '').trim(),
+      email: String(form.get('email') || '').trim(),
+      address: String(form.get('address') || '').trim(),
+      boarding_point: String(form.get('boarding_point') || '').trim(),
+      dropping_point: String(form.get('dropping_point') || '').trim(),
+      payment_method: String(form.get('payment_method') || '').trim(),
+      payment_info: String(form.get('payment_info') || '').trim(),
+      updated_at: serverTimestamp(),
+    });
+    setMessage('ticketUpdateMsg', `Ticket ${ticketId} updated.`, 'success');
+  } catch (error) {
+    setMessage('ticketUpdateMsg', error.message || 'Failed to update ticket.', 'error');
+  }
+}
+
+async function handleTicketDelete(event) {
+  event.preventDefault();
+  const ticketId = String(new FormData(event.target).get('ticket_id') || '').trim();
+  if (!ticketId) return;
+  if (!confirm(`Delete ticket ${ticketId}?`)) return;
+
+  try {
+    const ticketRef = doc(db, 'bookings', ticketId);
+    const ticketSnap = await getDoc(ticketRef);
+    if (!ticketSnap.exists()) throw new Error('Ticket not found.');
+
+    const ticketData = ticketSnap.data();
+    await runTransaction(db, async transaction => {
+      const tripRef = doc(db, 'trips', ticketData.trip_id);
+      const tripSnap = await transaction.get(tripRef);
+      if (tripSnap.exists()) {
+        transaction.update(tripRef, {
+          available_seats: increment(1),
+          updated_at: serverTimestamp(),
+        });
+      }
+      transaction.delete(ticketRef);
+    });
+
+    setMessage('ticketDeleteMsg', `Ticket ${ticketId} deleted.`, 'success');
+    event.target.reset();
+  } catch (error) {
+    setMessage('ticketDeleteMsg', error.message || 'Failed to delete ticket.', 'error');
+  }
+}
+
+// ---------------- Create Requests ----------------
+function renderRequestsTable() {
+  if (!state.requests.length) {
+    els.requestsTableContainer.innerHTML = '<p class="section-note">No requests found.</p>';
     return;
   }
 
-  try {
-    const tripRef = doc(tripsCollection, tripId);
-    const tripDoc = await getDoc(tripRef);
-    if (!tripDoc.exists()) {
-      showTemporaryMessage(ticketTableMessage, 'Selected trip does not exist.', 'error');
-      return;
-    }
+  const rows = state.requests.map(request => `
+    <tr>
+      <td>${escapeHtml(request.request_id || request.id)}</td>
+      <td>${escapeHtml(request.subject)}</td>
+      <td>${escapeHtml(request.requested_by)}</td>
+      <td>${escapeHtml(request.status)}</td>
+      <td>${escapeHtml(request.details)}</td>
+    </tr>
+  `).join('');
 
-    const trip = tripDoc.data();
-    if ((trip.available_seats ?? 0) <= 0) {
-      showTemporaryMessage(ticketTableMessage, 'No seats available for this trip.', 'error');
-      return;
-    }
-
-    const newTicketRef = doc(ticketsCollection);
-    const newTicket = {
-      ticket_id: newTicketRef.id,
-      trip_id: tripId,
-      travel_date: trip.travel_date,
-      seat_number: seatNumber,
-      passenger_name: passengerName,
-      phone,
-      email,
-      boarding_point: boardingPoint,
-      dropping_point: droppingPoint,
-      payment_method: paymentMethod,
-      payment_info: paymentInfo,
-      fare: trip.fare,
-      booking_time: formatDateTime(new Date()),
-      created_at: serverTimestamp(),
-      created_by: loggedInUser
-    };
-
-    await setDoc(newTicketRef, newTicket);
-    await updateDoc(tripRef, {
-      available_seats: increment(-1)
-    });
-
-    ticketForm.reset();
-    showTemporaryMessage(ticketTableMessage, 'Ticket created successfully.');
-  } catch (error) {
-    showTemporaryMessage(ticketTableMessage, `Ticket creation failed: ${error.message}`, 'error');
-  }
+  els.requestsTableContainer.innerHTML = `
+    <table class="styled-table">
+      <thead>
+        <tr>
+          <th>Request ID</th><th>Subject</th><th>Requested By</th><th>Status</th><th>Details</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 async function handleRequestCreate(event) {
   event.preventDefault();
-
-  const subject = buildReference(requestForm.subject.value);
-  const details = buildReference(requestForm.details.value);
-
-  if (!subject || !details) {
-    showTemporaryMessage(requestMessage, 'Add a subject and details for the request.', 'error');
-    return;
-  }
+  const form = new FormData(event.target);
 
   try {
-    const requestRef = doc(requestsCollection);
-    await setDoc(requestRef, {
-      request_id: requestRef.id,
-      requested_by: loggedInUser,
-      subject,
-      details,
+    const ref = doc(collection(db, 'requests'));
+    await setDoc(ref, {
+      subject: String(form.get('subject') || '').trim(),
+      requested_by: state.loggedInUserId || CM_USER,
+      details: String(form.get('details') || '').trim(),
       status: 'Pending',
       created_at: serverTimestamp(),
-      updated_at: serverTimestamp()
+      updated_at: serverTimestamp(),
+      source: 'Counter Manager',
     });
-    requestForm.reset();
-    showTemporaryMessage(requestMessage, 'Request sent to the admin.');
+    setMessage('requestCreateMsg', 'Request sent to Admin!', 'success');
+    event.target.reset();
+    document.getElementById('requestCreateRequestedBy').value = state.loggedInUserId || CM_USER;
   } catch (error) {
-    showTemporaryMessage(requestMessage, `Saving request failed: ${error.message}`, 'error');
+    setMessage('requestCreateMsg', error.message || 'Failed to send request.', 'error');
   }
 }
 
-function renderTripsTable() {
-  tripsData.sort((a, b) => {
-    if (a.travel_date !== b.travel_date) return a.travel_date.localeCompare(b.travel_date);
-    return parseTime(a.departure_time) - parseTime(b.departure_time);
+// ---------------- Bindings ----------------
+function bindForms() {
+  document.getElementById('tripSearchForm').addEventListener('submit', handleTripSearch);
+  document.getElementById('tripSearchResetBtn').addEventListener('click', () => {
+    document.getElementById('tripSearchForm').reset();
+    document.getElementById('tripSearchResult').innerHTML = '';
   });
 
-  tripTableBody.innerHTML = tripsData.length
-    ? tripsData.map(buildTripRow).join('')
-    : '<tr><td colspan="10">No trips available yet.</td></tr>';
-  bindTripTableActions();
-}
-
-function renderTicketsTable() {
-  ticketTableBody.innerHTML = ticketsData.length
-    ? ticketsData.map(buildTicketRow).join('')
-    : '<tr><td colspan="13">No tickets have been created yet.</td></tr>';
-  bindTicketTableActions();
-}
-
-function renderRequestsTable() {
-  requestTableBody.innerHTML = requestsData.length
-    ? requestsData.map(buildRequestRow).join('')
-    : '<tr><td colspan="6">No requests found in your history.</td></tr>';
-  bindRequestTableActions();
-}
-
-function bindTripTableActions() {
-  tripTableBody.querySelectorAll('button[data-action="edit-trip"]').forEach(button => {
-    button.addEventListener('click', () => loadTripForEdit(button.dataset.id));
+  document.getElementById('ticketCreateForm').addEventListener('submit', handleTicketCreate);
+  document.getElementById('ticketFetchForm').addEventListener('submit', handleTicketFetch);
+  document.getElementById('ticketUpdateForm').addEventListener('submit', handleTicketUpdate);
+  document.getElementById('ticketDeleteForm').addEventListener('submit', handleTicketDelete);
+  document.getElementById('ticketUpdateClearBtn').addEventListener('click', () => {
+    document.getElementById('ticketUpdateForm').reset();
   });
-  tripTableBody.querySelectorAll('button[data-action="delete-trip"]').forEach(button => {
-    button.addEventListener('click', () => deleteTrip(button.dataset.id));
+  document.getElementById('ticketDeleteClearBtn').addEventListener('click', () => {
+    document.getElementById('ticketDeleteForm').reset();
   });
-}
 
-function bindTicketTableActions() {
-  ticketTableBody.querySelectorAll('button[data-action="edit-ticket"]').forEach(button => {
-    button.addEventListener('click', () => loadTicketForEdit(button.dataset.id));
+  document.getElementById('ticketFilterForm').addEventListener('submit', event => {
+    event.preventDefault();
+    state.ticketFilter = document.getElementById('ticketFilterInput').value.trim();
+    renderTicketsTable();
   });
-  ticketTableBody.querySelectorAll('button[data-action="delete-ticket"]').forEach(button => {
-    button.addEventListener('click', () => deleteTicket(button.dataset.id));
+  document.getElementById('ticketFilterClearBtn').addEventListener('click', () => {
+    document.getElementById('ticketFilterInput').value = '';
+    state.ticketFilter = '';
+    renderTicketsTable();
   });
+
+  document.getElementById('requestCreateForm').addEventListener('submit', handleRequestCreate);
 }
 
-function bindRequestTableActions() {
-  requestTableBody.querySelectorAll('button[data-action="edit-request"]').forEach(button => {
-    button.addEventListener('click', () => loadRequestForEdit(button.dataset.id));
-  });
-  requestTableBody.querySelectorAll('button[data-action="delete-request"]').forEach(button => {
-    button.addEventListener('click', () => deleteRequest(button.dataset.id));
-  });
-}
+function bindLogin() {
+  els.loginForm.addEventListener('submit', event => {
+    event.preventDefault();
+    const form = new FormData(event.target);
+    const userId = String(form.get('userid') || '').trim();
+    const password = String(form.get('password') || '').trim();
 
-async function loadTripForEdit(tripId) {
-  const selectedTrip = tripsData.find(trip => trip.trip_id === tripId);
-  if (!selectedTrip) {
-    showTemporaryMessage(tripTableMessage, 'Trip not found.', 'error');
-    return;
-  }
-
-  tripEditSection.classList.remove('hidden');
-  tripEditForm.trip_id.value = selectedTrip.trip_id;
-  tripEditForm.origin.value = selectedTrip.origin;
-  tripEditForm.destination.value = selectedTrip.destination;
-  tripEditForm.travel_date.value = selectedTrip.travel_date;
-  tripEditForm.departure_time.value = selectedTrip.departure_time;
-  tripEditForm.arrival_time.value = selectedTrip.arrival_time;
-  tripEditForm.bus_id.value = selectedTrip.bus_id;
-  tripEditForm.fare.value = selectedTrip.fare;
-  tripEditForm.total_seats.value = selectedTrip.total_seats;
-}
-
-async function loadTicketForEdit(ticketId) {
-  const selectedTicket = ticketsData.find(ticket => ticket.ticket_id === ticketId);
-  if (!selectedTicket) {
-    showTemporaryMessage(ticketTableMessage, 'Ticket not found.', 'error');
-    return;
-  }
-
-  ticketEditSection.classList.remove('hidden');
-  ticketEditForm.ticket_id.value = selectedTicket.ticket_id;
-  ticketEditForm.trip_id.value = selectedTicket.trip_id;
-  ticketEditForm.seat_number.value = selectedTicket.seat_number;
-  ticketEditForm.passenger_name.value = selectedTicket.passenger_name;
-  ticketEditForm.phone.value = selectedTicket.phone;
-  ticketEditForm.email.value = selectedTicket.email;
-  ticketEditForm.boarding_point.value = selectedTicket.boarding_point;
-  ticketEditForm.dropping_point.value = selectedTicket.dropping_point;
-  ticketEditForm.payment_method.value = selectedTicket.payment_method;
-  ticketEditForm.payment_info.value = selectedTicket.payment_info;
-}
-
-async function loadRequestForEdit(requestId) {
-  const selectedRequest = requestsData.find(request => request.request_id === requestId);
-  if (!selectedRequest) {
-    showTemporaryMessage(requestMessage, 'Request not found.', 'error');
-    return;
-  }
-
-  requestEditSection.classList.remove('hidden');
-  requestEditForm.request_id.value = selectedRequest.request_id;
-  requestEditForm.subject.value = selectedRequest.subject;
-  requestEditForm.details.value = selectedRequest.details;
-}
-
-async function deleteTrip(tripId) {
-  if (!confirm('Delete this trip? All associated tickets will remain and may point to a removed trip.')) {
-    return;
-  }
-
-  try {
-    await deleteDoc(doc(tripsCollection, tripId));
-    showTemporaryMessage(tripTableMessage, 'Trip deleted successfully.');
-  } catch (error) {
-    showTemporaryMessage(tripTableMessage, `Error deleting trip: ${error.message}`, 'error');
-  }
-}
-
-async function deleteTicket(ticketId) {
-  if (!confirm('Delete this ticket and restore available seats?')) return;
-  try {
-    const ticketRef = doc(ticketsCollection, ticketId);
-    const ticketDoc = await getDoc(ticketRef);
-    if (!ticketDoc.exists()) {
-      showTemporaryMessage(ticketTableMessage, 'Ticket not found.', 'error');
+    if (userId === CM_USER && password === CM_PASS) {
+      state.loggedInUserId = userId;
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ userId, loggedInAt: Date.now() }));
+      setLoginMessage('');
+      document.getElementById('requestCreateRequestedBy').value = userId;
+      showApp();
+      setActiveSection('dashboard');
       return;
     }
 
-    const ticket = ticketDoc.data();
-    await deleteDoc(ticketRef);
-    if (ticket.trip_id) {
-      const tripRef = doc(tripsCollection, ticket.trip_id);
-      await updateDoc(tripRef, { available_seats: increment(1) });
-    }
-    showTemporaryMessage(ticketTableMessage, 'Ticket deleted successfully.');
-  } catch (error) {
-    showTemporaryMessage(ticketTableMessage, `Error deleting ticket: ${error.message}`, 'error');
-  }
+    setLoginMessage('Invalid credentials. Use CM1 / CD1.');
+  });
 }
 
-async function deleteRequest(requestId) {
-  if (!confirm('Delete this request?')) return;
-  try {
-    await deleteDoc(doc(requestsCollection, requestId));
-    showTemporaryMessage(requestMessage, 'Request removed.');
-  } catch (error) {
-    showTemporaryMessage(requestMessage, `Unable to delete request: ${error.message}`, 'error');
-  }
+function bindNav() {
+  document.querySelectorAll('.sidebar-link').forEach(button => {
+    button.addEventListener('click', () => setActiveSection(button.dataset.section));
+  });
+
+  document.getElementById('cmHomeBtn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+
+  document.getElementById('cmLandingBtn').addEventListener('click', () => {
+    window.location.href = 'index.html';
+  });
+
+  document.getElementById('cmLogoutBtn').addEventListener('click', () => {
+    localStorage.removeItem(SESSION_KEY);
+    state.loggedInUserId = '';
+    showLogin();
+  });
 }
 
-async function handleTripEdit(event) {
-  event.preventDefault();
+function bindRealtime() {
+  onSnapshot(collection(db, 'trips'), snapshot => {
+    state.trips = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+    renderAll();
+  }, error => console.error('Trips snapshot error', error));
 
-  const tripId = buildReference(tripEditForm.trip_id.value);
-  const origin = buildReference(tripEditForm.origin.value);
-  const destination = buildReference(tripEditForm.destination.value);
-  const travelDate = buildReference(tripEditForm.travel_date.value);
-  const departureTime = buildReference(tripEditForm.departure_time.value);
-  const arrivalTime = buildReference(tripEditForm.arrival_time.value);
-  const busId = buildReference(tripEditForm.bus_id.value);
-  const fare = Number(tripEditForm.fare.value || '0');
-  const seats = Number(tripEditForm.total_seats.value || '40');
+  onSnapshot(collection(db, 'bookings'), snapshot => {
+    state.bookings = snapshot.docs.map(docSnap => ({ id: docSnap.id, ticket_id: docSnap.id, ...docSnap.data() }));
+    renderAll();
+  }, error => console.error('Bookings snapshot error', error));
 
-  if (!tripId || !origin || !destination || !travelDate || !departureTime || !arrivalTime || !busId || fare <= 0) {
-    showTemporaryMessage(tripEditMessage, 'Complete every trip field before saving.', 'error');
-    return;
-  }
-
-  try {
-    const tripRef = doc(tripsCollection, tripId);
-    await updateDoc(tripRef, {
-      origin,
-      destination,
-      travel_date: travelDate,
-      departure_time: departureTime,
-      arrival_time: arrivalTime,
-      bus_id: busId,
-      fare,
-      total_seats: seats,
-      available_seats: seats
-    });
-    tripEditSection.classList.add('hidden');
-    showTemporaryMessage(tripTableMessage, 'Trip updated successfully.');
-  } catch (error) {
-    showTemporaryMessage(tripEditMessage, `Trip update failed: ${error.message}`, 'error');
-  }
+  onSnapshot(collection(db, 'requests'), snapshot => {
+    state.requests = snapshot.docs
+      .map(docSnap => ({ id: docSnap.id, request_id: docSnap.id, ...docSnap.data() }))
+      .filter(request => request.source === 'Counter Manager' || request.requested_by === state.loggedInUserId);
+    renderAll();
+  }, error => console.error('Requests snapshot error', error));
 }
 
-async function handleTicketEdit(event) {
-  event.preventDefault();
-  const ticketId = buildReference(ticketEditForm.ticket_id.value);
-  const seatNumber = buildReference(ticketEditForm.seat_number.value);
-  const passengerName = buildReference(ticketEditForm.passenger_name.value);
-  const phone = buildReference(ticketEditForm.phone.value);
-  const email = buildReference(ticketEditForm.email.value);
-  const boardingPoint = buildReference(ticketEditForm.boarding_point.value);
-  const droppingPoint = buildReference(ticketEditForm.dropping_point.value);
-  const paymentMethod = buildReference(ticketEditForm.payment_method.value);
-  const paymentInfo = buildReference(ticketEditForm.payment_info.value);
-
-  if (!ticketId || !seatNumber || !passengerName || !phone || !email || !boardingPoint || !droppingPoint || !paymentMethod || !paymentInfo) {
-    showTemporaryMessage(ticketEditMessage, 'Complete every ticket field before updating.', 'error');
-    return;
-  }
-
-  try {
-    const ticketRef = doc(ticketsCollection, ticketId);
-    await updateDoc(ticketRef, {
-      seat_number: seatNumber,
-      passenger_name: passengerName,
-      phone,
-      email,
-      boarding_point: boardingPoint,
-      dropping_point: droppingPoint,
-      payment_method: paymentMethod,
-      payment_info: paymentInfo,
-      updated_at: serverTimestamp()
-    });
-    ticketEditSection.classList.add('hidden');
-    showTemporaryMessage(ticketTableMessage, 'Ticket updated successfully.');
-  } catch (error) {
-    showTemporaryMessage(ticketEditMessage, `Ticket update failed: ${error.message}`, 'error');
-  }
+function renderAll() {
+  renderClock();
+  renderDashboard();
+  renderTripsTable();
+  renderTicketsTable();
+  renderRequestsTable();
 }
 
-async function handleRequestEdit(event) {
-  event.preventDefault();
-  const requestId = buildReference(requestEditForm.request_id.value);
-  const subject = buildReference(requestEditForm.subject.value);
-  const details = buildReference(requestEditForm.details.value);
+function bootstrap() {
+  bindLogin();
+  bindNav();
+  bindForms();
+  bindRealtime();
+  renderClock();
+  setInterval(renderClock, 1000);
+  setInterval(() => {
+    if (!els.appView.classList.contains('hidden')) renderDashboard();
+  }, 1000);
 
-  if (!requestId || !subject || !details) {
-    showTemporaryMessage(requestMessage, 'Complete every request field before updating.', 'error');
-    return;
-  }
-
-  try {
-    const requestRef = doc(requestsCollection, requestId);
-    await updateDoc(requestRef, {
-      subject,
-      details,
-      updated_at: serverTimestamp()
-    });
-    requestEditSection.classList.add('hidden');
-    showTemporaryMessage(requestMessage, 'Request updated successfully.');
-  } catch (error) {
-    showTemporaryMessage(requestMessage, `Unable to update request: ${error.message}`, 'error');
-  }
-}
-
-function updateTripSelection() {
-  tripSelectForTicket.innerHTML = tripsData.length
-    ? tripsData.map(trip => `<option value="${trip.trip_id}">${trip.trip_id} | ${trip.origin} ? ${trip.destination} (${trip.travel_date})</option>`).join('')
-    : '<option value="">No trips available</option>';
-}
-
-function updateDashboardMetrics() {
-  const today = formatDate(new Date());
-  const todayTrips = tripsData.filter(trip => trip.travel_date === today);
-  const currentMinutes = getCurrentTimeMinutes();
-  const completedTrips = todayTrips.filter(trip => parseTime(trip.departure_time) < currentMinutes).length;
-  const bookedSeats = ticketsData.filter(ticket => ticket.travel_date === today).length;
-  const availableSeats = todayTrips.reduce((sum, trip) => sum + (Number(trip.available_seats) || 0), 0);
-  const totalEarnings = ticketsData
-    .filter(ticket => ticket.travel_date === today)
-    .reduce((sum, ticket) => sum + (Number(ticket.fare) || 0), 0);
-
-  dashboardFields.todaysTrips.textContent = todayTrips.length;
-  dashboardFields.completedTrips.textContent = completedTrips;
-  dashboardFields.bookedSeats.textContent = bookedSeats;
-  dashboardFields.availableSeats.textContent = availableSeats;
-  dashboardFields.earnings.textContent = (typeof totalEarnings === 'number')
-    ? (totalEarnings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' BDT')
-    : (totalEarnings + ' BDT');
-  dashboardFields.requestCount.textContent = requestsData.length;
-}
-
-let realtimeConnected = false;
-
-function setConnected(connected) {
-  realtimeConnected = !!connected;
-  const el = document.getElementById('statusBanner');
-  if (!el) return;
-  if (!loggedInUser) {
-    el.textContent = 'Not signed in';
-    return;
-  }
-  el.textContent = realtimeConnected ? 'Realtime: connected' : 'Realtime: connecting...';
-}
-
-function startClock() {
-  const clockEl = document.getElementById('clock');
-  if (!clockEl) return;
-  function tick() {
+  const session = localStorage.getItem(SESSION_KEY);
+  if (session) {
     try {
-      const now = new Date();
-      const dhaka = new Intl.DateTimeFormat('en-GB', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Dhaka'
-      }).format(now);
-      clockEl.textContent = dhaka;
+      const parsed = JSON.parse(session);
+      state.loggedInUserId = parsed.userId || CM_USER;
     } catch (e) {
-      // fallback to local time
-      const now = new Date();
-      clockEl.textContent = now.toLocaleTimeString();
+      state.loggedInUserId = CM_USER;
     }
+    document.getElementById('requestCreateRequestedBy').value = state.loggedInUserId;
+    showApp();
+    setActiveSection('dashboard');
+  } else {
+    showLogin();
   }
-  tick();
-  setInterval(tick, 1000);
 }
 
-function startRealtimeListeners() {
-  const tripsQuery = query(tripsCollection, orderBy('travel_date'), orderBy('departure_time'));
-  const ticketQuery = query(ticketsCollection, orderBy('created_at', 'desc'));
-  const requestQuery = query(requestsCollection, where('requested_by', '==', loggedInUser), orderBy('created_at', 'desc'));
+window.loadTicketToForm = loadTicketToForm;
+window.loadTicketDelete = loadTicketDelete;
+window.showSection = setActiveSection;
 
-  let tripsReady = false, ticketsReady = false, requestsReady = false;
-
-  onSnapshot(tripsQuery, snapshot => {
-    tripsData = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id }));
-    tripsReady = true;
-    renderTripsTable();
-    updateTripSelection();
-    updateDashboardMetrics();
-    if (tripsReady && ticketsReady && requestsReady) setConnected(true);
-  });
-
-  onSnapshot(ticketQuery, snapshot => {
-    ticketsData = snapshot.docs.map(docSnap => ({ ...docSnap.data(), ticket_id: docSnap.id }));
-    ticketsReady = true;
-    renderTicketsTable();
-    updateDashboardMetrics();
-    if (tripsReady && ticketsReady && requestsReady) setConnected(true);
-  });
-
-  onSnapshot(requestQuery, snapshot => {
-    requestsData = snapshot.docs.map(docSnap => ({ ...docSnap.data(), request_id: docSnap.id }));
-    requestsReady = true;
-    renderRequestsTable();
-    updateDashboardMetrics();
-    if (tripsReady && ticketsReady && requestsReady) setConnected(true);
-  });
-
-  setConnected(false);
-}
-
-function attachFormHandlers() {
-  loginForm.addEventListener('submit', handleLogin);
-  tripForm.addEventListener('submit', handleTripCreate);
-  tripEditForm.addEventListener('submit', handleTripEdit);
-  ticketForm.addEventListener('submit', handleTicketCreate);
-  ticketEditForm.addEventListener('submit', handleTicketEdit);
-  requestForm.addEventListener('submit', handleRequestCreate);
-  requestEditForm.addEventListener('submit', handleRequestEdit);
-
-  document.getElementById('tripEditCancel').addEventListener('click', () => tripEditSection.classList.add('hidden'));
-  document.getElementById('ticketEditCancel').addEventListener('click', () => ticketEditSection.classList.add('hidden'));
-  document.getElementById('requestEditCancel').addEventListener('click', () => requestEditSection.classList.add('hidden'));
-}
-
-showScreen('login');
-bindButtons();
-attachFormHandlers();
+bootstrap();
