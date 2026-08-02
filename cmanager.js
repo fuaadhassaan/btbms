@@ -133,6 +133,7 @@ async function handleLogin(event) {
     if (!listenersStarted) {
       await seedSampleTrips();
       startRealtimeListeners();
+      startClock();
       listenersStarted = true;
     }
   } else {
@@ -711,8 +712,37 @@ function updateDashboardMetrics() {
   dashboardFields.requestCount.textContent = requestsData.length;
 }
 
-function showAppStatus() {
-  document.getElementById('statusBanner').textContent = loggedInUser ? 'Real-time dashboard connected' : 'Not connected';
+let realtimeConnected = false;
+
+function setConnected(connected) {
+  realtimeConnected = !!connected;
+  const el = document.getElementById('statusBanner');
+  if (!el) return;
+  if (!loggedInUser) {
+    el.textContent = 'Not signed in';
+    return;
+  }
+  el.textContent = realtimeConnected ? 'Realtime: connected' : 'Realtime: connecting...';
+}
+
+function startClock() {
+  const clockEl = document.getElementById('clock');
+  if (!clockEl) return;
+  function tick() {
+    try {
+      const now = new Date();
+      const dhaka = new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Dhaka'
+      }).format(now);
+      clockEl.textContent = dhaka;
+    } catch (e) {
+      // fallback to local time
+      const now = new Date();
+      clockEl.textContent = now.toLocaleTimeString();
+    }
+  }
+  tick();
+  setInterval(tick, 1000);
 }
 
 function startRealtimeListeners() {
@@ -720,26 +750,34 @@ function startRealtimeListeners() {
   const ticketQuery = query(ticketsCollection, orderBy('created_at', 'desc'));
   const requestQuery = query(requestsCollection, where('requested_by', '==', loggedInUser), orderBy('created_at', 'desc'));
 
+  let tripsReady = false, ticketsReady = false, requestsReady = false;
+
   onSnapshot(tripsQuery, snapshot => {
     tripsData = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id }));
+    tripsReady = true;
     renderTripsTable();
     updateTripSelection();
     updateDashboardMetrics();
+    if (tripsReady && ticketsReady && requestsReady) setConnected(true);
   });
 
   onSnapshot(ticketQuery, snapshot => {
     ticketsData = snapshot.docs.map(docSnap => ({ ...docSnap.data(), ticket_id: docSnap.id }));
+    ticketsReady = true;
     renderTicketsTable();
     updateDashboardMetrics();
+    if (tripsReady && ticketsReady && requestsReady) setConnected(true);
   });
 
   onSnapshot(requestQuery, snapshot => {
     requestsData = snapshot.docs.map(docSnap => ({ ...docSnap.data(), request_id: docSnap.id }));
+    requestsReady = true;
     renderRequestsTable();
     updateDashboardMetrics();
+    if (tripsReady && ticketsReady && requestsReady) setConnected(true);
   });
 
-  showAppStatus();
+  setConnected(false);
 }
 
 function attachFormHandlers() {
