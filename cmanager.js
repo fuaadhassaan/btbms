@@ -448,9 +448,15 @@ function renderRequestsTable() {
     return;
   }
 
-  const rows = state.requests.map(request => `
+  const sorted = [...state.requests].sort((a, b) => {
+    const aTime = a.created_at?.toMillis ? a.created_at.toMillis() : 0;
+    const bTime = b.created_at?.toMillis ? b.created_at.toMillis() : 0;
+    return aTime - bTime;
+  });
+
+  const rows = sorted.map((request, index) => `
     <tr>
-      <td>${escapeHtml(request.request_id || request.id)}</td>
+      <td>${index + 1}</td>
       <td>${escapeHtml(request.subject)}</td>
       <td>${escapeHtml(request.requested_by)}</td>
       <td>${escapeHtml(request.status)}</td>
@@ -462,7 +468,7 @@ function renderRequestsTable() {
     <table class="styled-table">
       <thead>
         <tr>
-          <th>Request ID</th><th>Subject</th><th>Requested By</th><th>Status</th><th>Details</th>
+          <th>#</th><th>Subject</th><th>Requested By</th><th>Status</th><th>Details</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
