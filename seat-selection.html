@@ -438,6 +438,7 @@
     let tripDocData = null;
     let bookingsUnsub = null;
     let lastBookingReceipt = null;
+    const totalSeats = 28;
 
     tripMeta.textContent = `Trip ID: ${tripId}`;
 
@@ -536,6 +537,10 @@
       receiptBody.innerHTML = `
         <div class="receipt-row"><strong>Trip ID</strong><span>${receipt.tripId}</span></div>
         <div class="receipt-row"><strong>Route</strong><span>${receipt.route}</span></div>
+        <div class="receipt-row"><strong>Bus Time</strong><span>${receipt.busTime}</span></div>
+        <div class="receipt-row"><strong>Price</strong><span>${receipt.pricePerTicket}</span></div>
+        <div class="receipt-row"><strong>Total Price</strong><span>${receipt.totalPrice}</span></div>
+        <div class="receipt-row"><strong>Total Seats</strong><span>${receipt.totalSeats}</span></div>
         <div class="receipt-row"><strong>Seats</strong><span>${receipt.seats.join(', ')}</span></div>
         <div class="receipt-row"><strong>Passengers</strong><span>${receipt.passengers.join(', ')}</span></div>
         <div class="receipt-row"><strong>Email</strong><span>${receipt.email}</span></div>
@@ -692,6 +697,10 @@
         lastBookingReceipt = {
           tripId,
           route: `${tripDocData?.origin || 'Unknown'} to ${tripDocData?.destination || 'Unknown'}`,
+          busTime: tripDocData?.departure_time || 'Unknown',
+          pricePerTicket: `BDT ${Number(tripDocData?.fare || 0).toFixed(2)}`,
+          totalPrice: `BDT ${(Number(tripDocData?.fare || 0) * selectedLabels.length).toFixed(2)}`,
+          totalSeats,
           seats: selectedLabels,
           passengers: passengerNames,
           email,
