@@ -281,11 +281,9 @@ function renderTicketsTable() {
       <td>${escapeHtml(ticket.passenger_name)}</td>
       <td>${escapeHtml(ticket.phone || ticket.contact_number)}</td>
       <td>${escapeHtml(ticket.email)}</td>
-      <td>${escapeHtml(ticket.address)}</td>
       <td>${escapeHtml(ticket.boarding_point)}</td>
       <td>${escapeHtml(ticket.dropping_point)}</td>
       <td>${escapeHtml(ticket.payment_method)}</td>
-      <td>${escapeHtml(ticket.payment_info)}</td>
       <td>
         <button class="mini-btn alt" type="button" onclick="loadTicketToForm('${escapeHtml(ticket.ticket_id || ticket.id)}')">Edit</button>
         <button class="mini-btn danger" type="button" onclick="loadTicketDelete('${escapeHtml(ticket.ticket_id || ticket.id)}')">Delete</button>
@@ -297,7 +295,7 @@ function renderTicketsTable() {
     <table class="styled-table">
       <thead>
         <tr>
-          <th>Ticket ID</th><th>Trip ID</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Email</th><th>Address</th><th>Boarding</th><th>Dropping</th><th>Payment</th><th>Payment Info</th><th>Actions</th>
+          <th>Ticket ID</th><th>Trip ID</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Email</th><th>Boarding</th><th>Dropping</th><th>Payment</th><th>Actions</th>
         </tr>
       </thead>
       <tbody>${html}</tbody>
@@ -314,11 +312,9 @@ function loadTicketToForm(ticketId) {
   document.getElementById('ticketUpdatePassenger').value = ticket.passenger_name || '';
   document.getElementById('ticketUpdatePhone').value = ticket.phone || ticket.contact_number || '';
   document.getElementById('ticketUpdateEmail').value = ticket.email || '';
-  document.getElementById('ticketUpdateAddress').value = ticket.address || '';
   document.getElementById('ticketUpdateBoarding').value = ticket.boarding_point || '';
   document.getElementById('ticketUpdateDropping').value = ticket.dropping_point || '';
   document.getElementById('ticketUpdatePayment').value = ticket.payment_method || 'Cash';
-  document.getElementById('ticketUpdatePaymentInfo').value = ticket.payment_info || '';
 }
 
 function loadTicketDelete(ticketId) {
@@ -366,11 +362,9 @@ async function handleTicketCreate(event) {
         passenger_name: String(form.get('passenger_name') || '').trim(),
         phone: String(form.get('phone') || '').trim(),
         email: String(form.get('email') || '').trim(),
-        address: String(form.get('address') || '').trim(),
         boarding_point: String(form.get('boarding_point') || '').trim(),
         dropping_point: String(form.get('dropping_point') || '').trim(),
         payment_method: String(form.get('payment_method') || '').trim(),
-        payment_info: String(form.get('payment_info') || '').trim(),
         booked_by: state.loggedInUserId || CM_USER,
         booking_time: serverTimestamp(),
       });
@@ -397,11 +391,9 @@ async function handleTicketUpdate(event) {
       passenger_name: String(form.get('passenger_name') || '').trim(),
       phone: String(form.get('phone') || '').trim(),
       email: String(form.get('email') || '').trim(),
-      address: String(form.get('address') || '').trim(),
       boarding_point: String(form.get('boarding_point') || '').trim(),
       dropping_point: String(form.get('dropping_point') || '').trim(),
       payment_method: String(form.get('payment_method') || '').trim(),
-      payment_info: String(form.get('payment_info') || '').trim(),
       updated_at: serverTimestamp(),
     });
     setMessage('ticketUpdateMsg', `Ticket ${ticketId} updated.`, 'success');
@@ -448,18 +440,6 @@ function renderRequestsTable() {
     return;
   }
 
-<<<<<<< HEAD
-  const rows = state.requests.map(request => `
-    <tr>
-      <td>${escapeHtml(request.request_id || request.id)}</td>
-      <td>${escapeHtml(request.subject)}</td>
-      <td>${escapeHtml(request.requested_by)}</td>
-      <td>${escapeHtml(request.status)}</td>
-      <td>${escapeHtml(request.details)}</td>
-    </tr>
-  `).join('');
-
-=======
   const sorted = [...state.requests].sort((a, b) => {
     const aTime = a.created_at?.toMillis ? a.created_at.toMillis() : 0;
     const bTime = b.created_at?.toMillis ? b.created_at.toMillis() : 0;
@@ -476,16 +456,11 @@ function renderRequestsTable() {
     </tr>
   `).join('');
 
->>>>>>> b6b454baf669e6029ec09e42f70adec5673c107a
   els.requestsTableContainer.innerHTML = `
     <table class="styled-table">
       <thead>
         <tr>
-<<<<<<< HEAD
-          <th>Request ID</th><th>Subject</th><th>Requested By</th><th>Status</th><th>Details</th>
-=======
           <th>#</th><th>Subject</th><th>Requested By</th><th>Status</th><th>Details</th>
->>>>>>> b6b454baf669e6029ec09e42f70adec5673c107a
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -647,8 +622,4 @@ window.loadTicketToForm = loadTicketToForm;
 window.loadTicketDelete = loadTicketDelete;
 window.showSection = setActiveSection;
 
-<<<<<<< HEAD
 bootstrap();
-=======
-bootstrap();
->>>>>>> b6b454baf669e6029ec09e42f70adec5673c107a

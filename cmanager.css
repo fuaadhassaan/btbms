@@ -431,6 +431,24 @@ button:hover,
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
 }
 
+.auth-form select,
+.form-grid select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #ff5a5a 50%),
+    linear-gradient(135deg, #ff5a5a 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(1em + 2px), calc(100% - 13px) calc(1em + 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 36px;
+}
+
+.auth-form select option,
+.form-grid select option {
+  background: #141414;
+  color: #fff;
+}
+
 input[readonly],
 textarea[readonly] {
   color: #ff9c9c;
