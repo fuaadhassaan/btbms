@@ -232,29 +232,30 @@
                 <input id="ticketCreateEmail" name="email" type="email" placeholder="name@example.com" required />
               </div>
               <div>
-                <label for="ticketCreateAddress">Address</label>
-                <input id="ticketCreateAddress" name="address" type="text" placeholder="Address" required />
-              </div>
-              <div>
                 <label for="ticketCreateBoarding">Boarding Point</label>
-                <input id="ticketCreateBoarding" name="boarding_point" type="text" placeholder="Boarding Point" required />
+                <select id="ticketCreateBoarding" name="boarding_point" required>
+                  <option value="">Select boarding</option>
+                  <option value="Dhaka">Dhaka</option>
+                  <option value="Chittagong">Chittagong</option>
+                  <option value="Sylhet">Sylhet</option>
+                </select>
               </div>
               <div>
                 <label for="ticketCreateDropping">Dropping Point</label>
-                <input id="ticketCreateDropping" name="dropping_point" type="text" placeholder="Dropping Point" required />
+                <select id="ticketCreateDropping" name="dropping_point" required>
+                  <option value="">Select dropping</option>
+                  <option value="Dhaka">Dhaka</option>
+                  <option value="Chittagong">Chittagong</option>
+                  <option value="Sylhet">Sylhet</option>
+                </select>
               </div>
               <div>
                 <label for="ticketCreatePayment">Payment Method</label>
                 <select id="ticketCreatePayment" name="payment_method" required>
-                  <option value="">Select</option>
                   <option value="Cash">Cash</option>
                   <option value="Bkash">Bkash</option>
                   <option value="Card">Card</option>
                 </select>
-              </div>
-              <div>
-                <label for="ticketCreatePaymentInfo">Payment Info</label>
-                <input id="ticketCreatePaymentInfo" name="payment_info" type="text" placeholder="Bkash number / card ref" required />
               </div>
               <div class="full form-actions">
                 <button class="primary-btn" type="submit">Create Ticket</button>
@@ -292,16 +293,20 @@
                 <input id="ticketUpdateEmail" name="email" type="email" required />
               </div>
               <div>
-                <label for="ticketUpdateAddress">Address</label>
-                <input id="ticketUpdateAddress" name="address" type="text" required />
-              </div>
-              <div>
                 <label for="ticketUpdateBoarding">Boarding Point</label>
-                <input id="ticketUpdateBoarding" name="boarding_point" type="text" required />
+                <select id="ticketUpdateBoarding" name="boarding_point" required>
+                  <option value="Dhaka">Dhaka</option>
+                  <option value="Chittagong">Chittagong</option>
+                  <option value="Sylhet">Sylhet</option>
+                </select>
               </div>
               <div>
                 <label for="ticketUpdateDropping">Dropping Point</label>
-                <input id="ticketUpdateDropping" name="dropping_point" type="text" required />
+                <select id="ticketUpdateDropping" name="dropping_point" required>
+                  <option value="Dhaka">Dhaka</option>
+                  <option value="Chittagong">Chittagong</option>
+                  <option value="Sylhet">Sylhet</option>
+                </select>
               </div>
               <div>
                 <label for="ticketUpdatePayment">Payment Method</label>
@@ -310,10 +315,6 @@
                   <option value="Bkash">Bkash</option>
                   <option value="Card">Card</option>
                 </select>
-              </div>
-              <div>
-                <label for="ticketUpdatePaymentInfo">Payment Info</label>
-                <input id="ticketUpdatePaymentInfo" name="payment_info" type="text" required />
               </div>
               <div class="full form-actions">
                 <button class="primary-btn" type="submit">Save Ticket</button>

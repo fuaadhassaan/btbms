@@ -266,11 +266,9 @@ function renderTicketsTable() {
       <td>${escapeHtml(ticket.passenger_name)}</td>
       <td>${escapeHtml(ticket.phone || ticket.contact_number)}</td>
       <td>${escapeHtml(ticket.email)}</td>
-      <td>${escapeHtml(ticket.address)}</td>
       <td>${escapeHtml(ticket.boarding_point)}</td>
       <td>${escapeHtml(ticket.dropping_point)}</td>
       <td>${escapeHtml(ticket.payment_method)}</td>
-      <td>${escapeHtml(ticket.payment_info)}</td>
       <td>
         <button class="mini-btn alt" type="button" onclick="loadTicketToForm('${escapeHtml(ticket.ticket_id || ticket.id)}')">Edit</button>
         <button class="mini-btn danger" type="button" onclick="loadTicketDelete('${escapeHtml(ticket.ticket_id || ticket.id)}')">Delete</button>
@@ -282,7 +280,7 @@ function renderTicketsTable() {
     <table class="styled-table">
       <thead>
         <tr>
-          <th>Ticket ID</th><th>Trip ID</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Email</th><th>Address</th><th>Boarding</th><th>Dropping</th><th>Payment</th><th>Payment Info</th><th>Actions</th>
+          <th>Ticket ID</th><th>Trip ID</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Email</th><th>Boarding</th><th>Dropping</th><th>Payment</th><th>Actions</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -295,19 +293,21 @@ function renderRequestsTable() {
     return;
   }
 
-  const rows = state.requests.map(request => `
+  const rows = state.requests.map(request => {
+    const statusClass = String(request.status || 'Pending').toLowerCase();
+    return `
     <tr>
       <td>${escapeHtml(request.request_id || request.id)}</td>
       <td>${escapeHtml(request.subject)}</td>
       <td>${escapeHtml(request.requested_by)}</td>
-      <td>${escapeHtml(request.status)}</td>
+      <td><span class="status-pill ${statusClass}">${escapeHtml(request.status)}</span></td>
       <td>${escapeHtml(request.details)}</td>
       <td>
         <button class="mini-btn alt" type="button" onclick="loadRequestToForm('${escapeHtml(request.request_id || request.id)}')">Edit</button>
         <button class="mini-btn danger" type="button" onclick="loadRequestDelete('${escapeHtml(request.request_id || request.id)}')">Delete</button>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 
   els.requestsTableContainer.innerHTML = `
     <table class="styled-table">
@@ -323,7 +323,7 @@ function renderRequestsTable() {
 function loadTripToForm(tripId) {
   const trip = state.trips.find(item => item.trip_id === tripId);
   if (!trip) return;
-  setSection('trips');
+  setActiveSection('trips');
   document.getElementById('tripUpdateId').value = trip.trip_id;
   document.getElementById('tripUpdateBus').value = trip.bus_id || '';
   document.getElementById('tripUpdateOrigin').value = trip.origin || '';
@@ -336,36 +336,34 @@ function loadTripToForm(tripId) {
 }
 
 function loadTripDelete(tripId) {
-  setSection('trips');
+  setActiveSection('trips');
   document.getElementById('tripDeleteId').value = tripId;
 }
 
 function loadTicketToForm(ticketId) {
   const ticket = state.bookings.find(item => (item.ticket_id || item.id) === ticketId);
   if (!ticket) return;
-  setSection('tickets');
+  setActiveSection('tickets');
   document.getElementById('ticketUpdateId').value = ticket.ticket_id || ticket.id || '';
   document.getElementById('ticketUpdateTripId').value = ticket.trip_id || '';
   document.getElementById('ticketUpdateSeat').value = ticket.seat_label || '';
   document.getElementById('ticketUpdatePassenger').value = ticket.passenger_name || '';
   document.getElementById('ticketUpdatePhone').value = ticket.phone || ticket.contact_number || '';
   document.getElementById('ticketUpdateEmail').value = ticket.email || '';
-  document.getElementById('ticketUpdateAddress').value = ticket.address || '';
   document.getElementById('ticketUpdateBoarding').value = ticket.boarding_point || '';
   document.getElementById('ticketUpdateDropping').value = ticket.dropping_point || '';
   document.getElementById('ticketUpdatePayment').value = ticket.payment_method || 'Cash';
-  document.getElementById('ticketUpdatePaymentInfo').value = ticket.payment_info || '';
 }
 
 function loadTicketDelete(ticketId) {
-  setSection('tickets');
+  setActiveSection('tickets');
   document.getElementById('ticketDeleteId').value = ticketId;
 }
 
 function loadRequestToForm(requestId) {
   const request = state.requests.find(item => (item.request_id || item.id) === requestId);
   if (!request) return;
-  setSection('requests');
+  setActiveSection('requests');
   document.getElementById('requestUpdateId').value = request.request_id || request.id || '';
   document.getElementById('requestUpdateSubject').value = request.subject || '';
   document.getElementById('requestUpdateRequestedBy').value = request.requested_by || '';
@@ -374,7 +372,7 @@ function loadRequestToForm(requestId) {
 }
 
 function loadRequestDelete(requestId) {
-  setSection('requests');
+  setActiveSection('requests');
   document.getElementById('requestDeleteId').value = requestId;
 }
 
@@ -480,11 +478,9 @@ async function handleTicketCreate(event) {
         passenger_name: String(form.get('passenger_name') || '').trim(),
         phone: String(form.get('phone') || '').trim(),
         email: String(form.get('email') || '').trim(),
-        address: String(form.get('address') || '').trim(),
         boarding_point: String(form.get('boarding_point') || '').trim(),
         dropping_point: String(form.get('dropping_point') || '').trim(),
         payment_method: String(form.get('payment_method') || '').trim(),
-        payment_info: String(form.get('payment_info') || '').trim(),
         booking_time: serverTimestamp(),
       });
       transaction.update(tripRef, {
@@ -510,11 +506,9 @@ async function handleTicketUpdate(event) {
       passenger_name: String(form.get('passenger_name') || '').trim(),
       phone: String(form.get('phone') || '').trim(),
       email: String(form.get('email') || '').trim(),
-      address: String(form.get('address') || '').trim(),
       boarding_point: String(form.get('boarding_point') || '').trim(),
       dropping_point: String(form.get('dropping_point') || '').trim(),
       payment_method: String(form.get('payment_method') || '').trim(),
-      payment_info: String(form.get('payment_info') || '').trim(),
       updated_at: serverTimestamp(),
     });
     setMessage('ticketUpdateMsg', `Ticket ${ticketId} updated.`, 'success');

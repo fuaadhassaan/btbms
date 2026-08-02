@@ -110,6 +110,51 @@ body::before {
   color: #a7a7a7;
 }
 
+.form-grid select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.form-grid select:focus {
+  border-color: #ff4b4b;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-pill.pending {
+  background: rgba(255, 171, 0, 0.16);
+  color: #ffb800;
+}
+
+.status-pill.approved {
+  background: rgba(56, 219, 96, 0.16);
+  color: #b4ffac;
+}
+
+.status-pill.rejected {
+  background: rgba(255, 71, 71, 0.16);
+  color: #ff9c9c;
+}
+
+.status-pill.closed {
+  background: rgba(106, 106, 106, 0.16);
+  color: #d1d1d1;
+}
+
 .auth-actions,
 .form-actions {
   display: flex;
@@ -303,6 +348,51 @@ button:hover,
 .form-grid textarea {
   min-height: 100px;
   resize: vertical;
+}
+
+.form-grid select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.form-grid select:focus {
+  border-color: #ff4b4b;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-pill.pending {
+  background: rgba(255, 171, 0, 0.16);
+  color: #ffb800;
+}
+
+.status-pill.approved {
+  background: rgba(56, 219, 96, 0.16);
+  color: #b4ffac;
+}
+
+.status-pill.rejected {
+  background: rgba(255, 71, 71, 0.16);
+  color: #ff9c9c;
+}
+
+.status-pill.closed {
+  background: rgba(106, 106, 106, 0.16);
+  color: #d1d1d1;
 }
 
 .form-note {
