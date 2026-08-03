@@ -14,19 +14,23 @@ BTBMS – A complete Bus Ticket Booking &amp; Management System | Real-time seat
 
 -Select up to 4 seats per booking
 
--Multiple payment options (Bkash, Card)
+-Multiple payment options (Cash, Bkash, Card)
+
+-PDF Download option for tickets
 
 **🏢 Admin:**
+
+-Individual Dashboard
 
 -Manage trips CRUD (Create, Update, Delete, Overview)
 
 -Manage tickets CRUD (Create, Update, Delete, Overview)
 
--Overview company stats (daily, monthly, yearly with charts)
-
--Handle requests from managers
+-Handle requests from managers (CRUD)
 
 **🎟️ Counter Manager:**
+
+-Individual Dashboard
 
 -View trip schedules
 
@@ -38,7 +42,7 @@ BTBMS – A complete Bus Ticket Booking &amp; Management System | Real-time seat
 
 -Role-based dashboards with color based themes for better user reliability
 
--Separate HTML and CSS files for each module
+-Separate HTML and CSS files for each module and js files to connect with firebase database.
 
 **🔥 Firebase / Firestore Data:**
 
