@@ -24,18 +24,6 @@ const state = {
   requests: [],
   ticketFilter: '',
   loggedInUserId: '',
-  tripTable: {
-    filters: {},
-    sort: { column: 'trip_id', direction: 1 },
-  },
-  ticketTable: {
-    filters: {},
-    sort: { column: 'ticket_id', direction: 1 },
-  },
-  requestTable: {
-    filters: {},
-    sort: { column: 'subject', direction: 1 },
-  },
 };
 
 const els = {
@@ -72,124 +60,6 @@ function escapeHtml(value) {
 
 function formatMoney(value) {
   return `BDT ${Number(value || 0).toFixed(2)}`;
-}
-
-function normalizeFilterValue(value) {
-  return String(value ?? '').trim().toLowerCase();
-}
-
-function getTableState(tableKey) {
-  return state[`${tableKey}Table`] || { filters: {}, sort: { column: '', direction: 1 } };
-}
-
-function compareTableValues(a, b, column) {
-  const numberColumns = new Set(['fare', 'available_seats', 'booked']);
-  const aValue = a[column];
-  const bValue = b[column];
-  if (numberColumns.has(column)) {
-    return Number(aValue || 0) - Number(bValue || 0);
-  }
-  return String(aValue ?? '').localeCompare(String(bValue ?? ''));
-}
-
-function applyTableFilters(items, tableKey, columns) {
-  const filters = getTableState(tableKey).filters;
-  return items.filter(item => {
-    return columns.every(column => {
-      if (!column.filterable) return true;
-      const filterValue = normalizeFilterValue(filters[column.key]);
-      if (!filterValue) return true;
-      const itemValue = normalizeFilterValue(item[column.key]);
-      return itemValue.includes(filterValue);
-    });
-  });
-}
-
-function sortTableItems(items, tableKey) {
-  const tableState = getTableState(tableKey).sort;
-  const column = tableState.column;
-  if (!column) return items;
-  return [...items].sort((a, b) => compareTableValues(a, b, column) * tableState.direction);
-}
-
-function buildTableHeader(columns, tableKey) {
-  const tableState = getTableState(tableKey).sort;
-  return columns.map(column => {
-    if (!column.sortable) {
-      return `<th>${escapeHtml(column.label)}</th>`;
-    }
-    const active = column.key === tableState.column;
-    const indicator = active ? (tableState.direction === 1 ? ' ▲' : ' ▼') : '';
-    return `<th class="sortable" data-table="${tableKey}" data-column="${escapeHtml(column.key)}">${escapeHtml(column.label)}<span class="sort-indicator">${indicator}</span></th>`;
-  }).join('');
-}
-
-function buildFilterRow(columns, tableKey) {
-  const filters = getTableState(tableKey).filters;
-  return columns.map(column => {
-    if (!column.filterable) {
-      return `<th>${column.reset ? `<button class="secondary-btn table-filter-reset" data-table="${tableKey}" type="button">Reset</button>` : ''}</th>`;
-    }
-    const value = escapeHtml(filters[column.key] || '');
-    return `<th><input class="table-filter-input" type="text" data-table="${tableKey}" data-column="${escapeHtml(column.key)}" placeholder="Filter" value="${value}" /></th>`;
-  }).join('');
-}
-
-function toggleTableSort(tableKey, column) {
-  const tableState = getTableState(tableKey).sort;
-  if (tableState.column === column) {
-    tableState.direction *= -1;
-  } else {
-    tableState.column = column;
-    tableState.direction = 1;
-  }
-}
-
-function updateTableFilter(tableKey, column, value) {
-  const filters = getTableState(tableKey).filters;
-  filters[column] = String(value || '');
-}
-
-function resetTableFilters(tableKey) {
-  const filters = getTableState(tableKey).filters;
-  Object.keys(filters).forEach(key => delete filters[key]);
-}
-
-function bindTableControls() {
-  [els.tripsTableContainer, els.ticketsTableContainer, els.requestsTableContainer].forEach(container => {
-    container.addEventListener('click', event => {
-      const sortHeader = event.target.closest('th.sortable');
-      if (sortHeader) {
-        const tableKey = sortHeader.dataset.table;
-        const column = sortHeader.dataset.column;
-        if (tableKey && column) {
-          toggleTableSort(tableKey, column);
-          renderAll();
-        }
-        return;
-      }
-
-      const resetButton = event.target.closest('button.table-filter-reset');
-      if (resetButton) {
-        const tableKey = resetButton.dataset.table;
-        if (tableKey) {
-          resetTableFilters(tableKey);
-          renderAll();
-        }
-      }
-    });
-
-    container.addEventListener('input', event => {
-      const input = event.target.closest('.table-filter-input');
-      if (!input) return;
-      const tableKey = input.dataset.table;
-      const column = input.dataset.column;
-      if (tableKey && column) {
-        updateTableFilter(tableKey, column, input.value);
-        renderAll();
-      }
-    });
-  });
 }
 
 function getDhakaDateTime(date = new Date()) {
@@ -326,38 +196,17 @@ function renderDashboard() {
 
 // ---------------- View Trips (read-only) ----------------
 function renderTripsTable() {
-  const columns = [
-    { key: 'trip_id', label: 'Trip ID', sortable: true, filterable: true },
-    { key: 'bus_id', label: 'Bus', sortable: true, filterable: true },
-    { key: 'origin', label: 'From', sortable: true, filterable: true },
-    { key: 'destination', label: 'To', sortable: true, filterable: true },
-    { key: 'departure_time', label: 'Departure', sortable: true, filterable: true },
-    { key: 'arrival_time', label: 'Arrival', sortable: true, filterable: true },
-    { key: 'travel_date', label: 'Date', sortable: true, filterable: true },
-    { key: 'fare', label: 'Fare', sortable: true, filterable: true },
-    { key: 'booked', label: 'Booked', sortable: true, filterable: false },
-    { key: 'available_seats', label: 'Available', sortable: true, filterable: true },
-  ];
+  if (!state.trips.length) {
+    els.tripsTableContainer.innerHTML = '<p class="section-note">No trips found.</p>';
+    return;
+  }
 
   const bookedByTrip = new Map();
   for (const booking of state.bookings) {
     bookedByTrip.set(booking.trip_id, (bookedByTrip.get(booking.trip_id) || 0) + 1);
   }
 
-  const tableData = state.trips.map(trip => ({
-    ...trip,
-    booked: bookedByTrip.get(trip.trip_id) || 0,
-  }));
-
-  let rowsData = applyTableFilters(tableData, 'trip', columns);
-  rowsData = sortTableItems(rowsData, 'trip');
-
-  if (!rowsData.length) {
-    els.tripsTableContainer.innerHTML = '<p class="section-note">No trips found.</p>';
-    return;
-  }
-
-  const rows = rowsData.map(trip => `
+  const rows = state.trips.map(trip => `
     <tr>
       <td>${escapeHtml(trip.trip_id)}</td>
       <td>${escapeHtml(trip.bus_id)}</td>
@@ -367,7 +216,7 @@ function renderTripsTable() {
       <td>${escapeHtml(trip.arrival_time)}</td>
       <td>${escapeHtml(trip.travel_date)}</td>
       <td>${escapeHtml(trip.fare)}</td>
-      <td>${escapeHtml(trip.booked)}</td>
+      <td>${escapeHtml(bookedByTrip.get(trip.trip_id) || 0)}</td>
       <td>${escapeHtml(trip.available_seats ?? 0)}</td>
     </tr>
   `).join('');
@@ -375,8 +224,9 @@ function renderTripsTable() {
   els.tripsTableContainer.innerHTML = `
     <table class="styled-table">
       <thead>
-        <tr>${buildTableHeader(columns, 'trip')}</tr>
-        <tr>${buildFilterRow(columns, 'trip')}</tr>
+        <tr>
+          <th>Trip ID</th><th>Bus</th><th>From</th><th>To</th><th>Departure</th><th>Arrival</th><th>Date</th><th>Fare</th><th>Booked</th><th>Available</th>
+        </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -409,36 +259,21 @@ function handleTripSearch(event) {
 
 // ---------------- Manage Tickets (full CRUD) ----------------
 function renderTicketsTable() {
-  const columns = [
-    { key: 'ticket_id', label: 'Ticket ID', sortable: true, filterable: true },
-    { key: 'trip_id', label: 'Trip ID', sortable: true, filterable: true },
-    { key: 'seat_label', label: 'Seat', sortable: true, filterable: true },
-    { key: 'passenger_name', label: 'Passenger', sortable: true, filterable: true },
-    { key: 'phone', label: 'Phone', sortable: true, filterable: true },
-    { key: 'email', label: 'Email', sortable: true, filterable: true },
-    { key: 'boarding_point', label: 'Boarding', sortable: true, filterable: true },
-    { key: 'dropping_point', label: 'Dropping', sortable: true, filterable: true },
-    { key: 'payment_method', label: 'Payment', sortable: true, filterable: true },
-    { key: 'actions', label: 'Actions', sortable: false, filterable: false, reset: true },
-  ];
-
   const filter = state.ticketFilter.trim();
-  let rowsData = filter
-    ? state.bookings.filter(t => String(t.trip_id || '').trim().toLowerCase() === String(filter).toLowerCase())
-    : [...state.bookings];
-  rowsData = applyTableFilters(rowsData, 'ticket', columns);
-  rowsData = sortTableItems(rowsData, 'ticket');
+  const rows = filter
+    ? state.bookings.filter(t => t.trip_id === filter)
+    : state.bookings;
 
   document.getElementById('ticketsFilterLabel').textContent = filter
-    ? `Showing tickets for Trip ID "${escapeHtml(filter)}".`
+    ? `Showing tickets for Trip ID "${filter}".`
     : 'Showing all tickets.';
 
-  if (!rowsData.length) {
+  if (!rows.length) {
     els.ticketsTableContainer.innerHTML = '<p class="section-note">No tickets found.</p>';
     return;
   }
 
-  const html = rowsData.map(ticket => `
+  const html = rows.map(ticket => `
     <tr>
       <td>${escapeHtml(ticket.ticket_id || ticket.id)}</td>
       <td>${escapeHtml(ticket.trip_id)}</td>
@@ -459,8 +294,9 @@ function renderTicketsTable() {
   els.ticketsTableContainer.innerHTML = `
     <table class="styled-table">
       <thead>
-        <tr>${buildTableHeader(columns, 'ticket')}</tr>
-        <tr>${buildFilterRow(columns, 'ticket')}</tr>
+        <tr>
+          <th>Ticket ID</th><th>Trip ID</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Email</th><th>Boarding</th><th>Dropping</th><th>Payment</th><th>Actions</th>
+        </tr>
       </thead>
       <tbody>${html}</tbody>
     </table>`;
@@ -683,8 +519,6 @@ function bindForms() {
     state.ticketFilter = '';
     renderTicketsTable();
   });
-
-  bindTableControls();
 
   document.getElementById('requestCreateForm').addEventListener('submit', handleRequestCreate);
 }
