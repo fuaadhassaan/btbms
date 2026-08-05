@@ -26,6 +26,18 @@ const state = {
   trips: [],
   bookings: [],
   requests: [],
+  tripTable: {
+    filters: {},
+    sort: { column: 'trip_id', direction: 1 },
+  },
+  ticketTable: {
+    filters: {},
+    sort: { column: 'ticket_id', direction: 1 },
+  },
+  requestTable: {
+    filters: {},
+    sort: { column: 'subject', direction: 1 },
+  },
 };
 
 const els = {
@@ -62,6 +74,130 @@ function escapeHtml(value) {
 
 function formatMoney(value) {
   return `BDT ${Number(value || 0).toFixed(2)}`;
+}
+
+function normalizeFilterValue(value) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function getTableState(tableKey) {
+  return state[`${tableKey}Table`] || { filters: {}, sort: { column: '', direction: 1 } };
+}
+
+function compareTableValues(a, b, column) {
+  const numberColumns = new Set(['fare', 'available_seats', 'booked']);
+  const aValue = a[column];
+  const bValue = b[column];
+
+  if (numberColumns.has(column)) {
+    return Number(aValue || 0) - Number(bValue || 0);
+  }
+
+  return String(aValue ?? '').localeCompare(String(bValue ?? ''));
+}
+
+function applyTableFilters(items, tableKey, columns) {
+  const filters = getTableState(tableKey).filters;
+  return items.filter(item => {
+    return columns.every(column => {
+      if (!column.filterable) return true;
+      const filterValue = normalizeFilterValue(filters[column.key]);
+      if (!filterValue) return true;
+      const itemValue = normalizeFilterValue(item[column.key]);
+      return itemValue.includes(filterValue);
+    });
+  });
+}
+
+function sortTableItems(items, tableKey) {
+  const tableState = getTableState(tableKey).sort;
+  const column = tableState.column;
+  if (!column) return items;
+
+  return [...items].sort((a, b) => {
+    const result = compareTableValues(a, b, column);
+    return result * tableState.direction;
+  });
+}
+
+function buildTableHeader(columns, tableKey) {
+  const tableState = getTableState(tableKey).sort;
+  return columns.map(column => {
+    if (!column.sortable) {
+      return `<th>${escapeHtml(column.label)}</th>`;
+    }
+    const active = column.key === tableState.column;
+    const indicator = active ? (tableState.direction === 1 ? ' ▲' : ' ▼') : '';
+    return `<th class="sortable" data-table="${tableKey}" data-column="${escapeHtml(column.key)}">${escapeHtml(column.label)}<span class="sort-indicator">${indicator}</span></th>`;
+  }).join('');
+}
+
+function buildFilterRow(columns, tableKey) {
+  const filters = getTableState(tableKey).filters;
+  return columns.map(column => {
+    if (!column.filterable) {
+      return `<th>${column.reset ? `<button class="secondary-btn table-filter-reset" data-table="${tableKey}" type="button">Reset</button>` : ''}</th>`;
+    }
+    const value = escapeHtml(filters[column.key] || '');
+    return `<th><input class="table-filter-input" type="text" data-table="${tableKey}" data-column="${escapeHtml(column.key)}" placeholder="Filter" value="${value}" /></th>`;
+  }).join('');
+}
+
+function toggleTableSort(tableKey, column) {
+  const tableState = getTableState(tableKey).sort;
+  if (tableState.column === column) {
+    tableState.direction *= -1;
+  } else {
+    tableState.column = column;
+    tableState.direction = 1;
+  }
+}
+
+function updateTableFilter(tableKey, column, value) {
+  const tableState = getTableState(tableKey).filters;
+  tableState[column] = String(value || '');
+}
+
+function resetTableFilters(tableKey) {
+  const tableState = getTableState(tableKey).filters;
+  Object.keys(tableState).forEach(key => delete tableState[key]);
+}
+
+function bindTableControls() {
+  [els.tripsTableContainer, els.ticketsTableContainer, els.requestsTableContainer].forEach(container => {
+    container.addEventListener('click', event => {
+      const sortHeader = event.target.closest('th.sortable');
+      if (sortHeader) {
+        const tableKey = sortHeader.dataset.table;
+        const column = sortHeader.dataset.column;
+        if (tableKey && column) {
+          toggleTableSort(tableKey, column);
+          renderAll();
+        }
+        return;
+      }
+
+      const resetButton = event.target.closest('button.table-filter-reset');
+      if (resetButton) {
+        const tableKey = resetButton.dataset.table;
+        if (tableKey) {
+          resetTableFilters(tableKey);
+          renderAll();
+        }
+      }
+    });
+
+    container.addEventListener('input', event => {
+      const input = event.target.closest('.table-filter-input');
+      if (!input) return;
+      const tableKey = input.dataset.table;
+      const column = input.dataset.column;
+      if (tableKey && column) {
+        updateTableFilter(tableKey, column, input.value);
+        renderAll();
+      }
+    });
+  });
 }
 
 function getDhakaDateTime(date = new Date()) {
@@ -233,12 +369,28 @@ function renderDashboard() {
 }
 
 function renderTripsTable() {
-  if (!state.trips.length) {
+  const columns = [
+    { key: 'trip_id', label: 'Trip ID', sortable: true, filterable: true },
+    { key: 'bus_id', label: 'Bus', sortable: true, filterable: true },
+    { key: 'origin', label: 'From', sortable: true, filterable: true },
+    { key: 'destination', label: 'To', sortable: true, filterable: true },
+    { key: 'departure_time', label: 'Departure', sortable: true, filterable: true },
+    { key: 'arrival_time', label: 'Arrival', sortable: true, filterable: true },
+    { key: 'travel_date', label: 'Date', sortable: true, filterable: true },
+    { key: 'fare', label: 'Fare', sortable: true, filterable: true },
+    { key: 'available_seats', label: 'Available Seats', sortable: true, filterable: true },
+    { key: 'actions', label: 'Actions', sortable: false, filterable: false, reset: true },
+  ];
+
+  let rowsData = applyTableFilters(state.trips, 'trip', columns);
+  rowsData = sortTableItems(rowsData, 'trip');
+
+  if (!rowsData.length) {
     els.tripsTableContainer.innerHTML = '<p class="section-note">No trips found.</p>';
     return;
   }
 
-  const rows = state.trips.map(trip => `
+  const rows = rowsData.map(trip => `
     <tr>
       <td>${escapeHtml(trip.trip_id)}</td>
       <td>${escapeHtml(trip.bus_id)}</td>
@@ -259,21 +411,43 @@ function renderTripsTable() {
   els.tripsTableContainer.innerHTML = `
     <table class="styled-table">
       <thead>
-        <tr>
-          <th>Trip ID</th><th>Bus</th><th>From</th><th>To</th><th>Departure</th><th>Arrival</th><th>Date</th><th>Fare</th><th>Available Seats</th><th>Actions</th>
-        </tr>
+        <tr>${buildTableHeader(columns, 'trip')}</tr>
+        <tr>${buildFilterRow(columns, 'trip')}</tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
 
 function renderTicketsTable() {
-  if (!state.bookings.length) {
+  const columns = [
+    { key: 'ticket_id', label: 'Ticket ID', sortable: true, filterable: true },
+    { key: 'trip_id', label: 'Trip ID', sortable: true, filterable: true },
+    { key: 'seat_label', label: 'Seat', sortable: true, filterable: true },
+    { key: 'passenger_name', label: 'Passenger', sortable: true, filterable: true },
+    { key: 'phone', label: 'Phone', sortable: true, filterable: true },
+    { key: 'email', label: 'Email', sortable: true, filterable: true },
+    { key: 'boarding_point', label: 'Boarding', sortable: true, filterable: true },
+    { key: 'dropping_point', label: 'Dropping', sortable: true, filterable: true },
+    { key: 'payment_method', label: 'Payment', sortable: true, filterable: true },
+    { key: 'actions', label: 'Actions', sortable: false, filterable: false, reset: true },
+  ];
+
+  let rowsData = state.ticketFilter
+    ? state.bookings.filter(t => String(t.trip_id || '').trim().toLowerCase() === String(state.ticketFilter || '').trim().toLowerCase())
+    : [...state.bookings];
+  rowsData = applyTableFilters(rowsData, 'ticket', columns);
+  rowsData = sortTableItems(rowsData, 'ticket');
+
+  document.getElementById('ticketsFilterLabel').textContent = state.ticketFilter
+    ? `Showing tickets for Trip ID "${escapeHtml(state.ticketFilter)}".`
+    : 'Showing all tickets.';
+
+  if (!rowsData.length) {
     els.ticketsTableContainer.innerHTML = '<p class="section-note">No tickets found.</p>';
     return;
   }
 
-  const rows = state.bookings.map(ticket => `
+  const html = rowsData.map(ticket => `
     <tr>
       <td>${escapeHtml(ticket.ticket_id || ticket.id)}</td>
       <td>${escapeHtml(ticket.trip_id)}</td>
@@ -294,27 +468,32 @@ function renderTicketsTable() {
   els.ticketsTableContainer.innerHTML = `
     <table class="styled-table">
       <thead>
-        <tr>
-          <th>Ticket ID</th><th>Trip ID</th><th>Seat</th><th>Passenger</th><th>Phone</th><th>Email</th><th>Boarding</th><th>Dropping</th><th>Payment</th><th>Actions</th>
-        </tr>
+        <tr>${buildTableHeader(columns, 'ticket')}</tr>
+        <tr>${buildFilterRow(columns, 'ticket')}</tr>
       </thead>
-      <tbody>${rows}</tbody>
+      <tbody>${html}</tbody>
     </table>`;
 }
 
 function renderRequestsTable() {
-  if (!state.requests.length) {
+  const columns = [
+    { key: 'index', label: '#', sortable: false, filterable: false },
+    { key: 'subject', label: 'Subject', sortable: true, filterable: true },
+    { key: 'requested_by', label: 'Requested By', sortable: true, filterable: true },
+    { key: 'status', label: 'Status', sortable: true, filterable: true },
+    { key: 'details', label: 'Details', sortable: true, filterable: true },
+    { key: 'actions', label: 'Actions', sortable: false, filterable: false, reset: true },
+  ];
+
+  let rowsData = applyTableFilters(state.requests, 'request', columns);
+  rowsData = sortTableItems(rowsData, 'request');
+
+  if (!rowsData.length) {
     els.requestsTableContainer.innerHTML = '<p class="section-note">No requests found.</p>';
     return;
   }
 
-  const sorted = [...state.requests].sort((a, b) => {
-    const aTime = a.created_at?.toMillis ? a.created_at.toMillis() : 0;
-    const bTime = b.created_at?.toMillis ? b.created_at.toMillis() : 0;
-    return aTime - bTime;
-  });
-
-  const rows = sorted.map((request, index) => {
+  const rows = rowsData.map((request, index) => {
     const statusClass = String(request.status || 'Pending').toLowerCase();
     return `
     <tr>
@@ -333,9 +512,8 @@ function renderRequestsTable() {
   els.requestsTableContainer.innerHTML = `
     <table class="styled-table">
       <thead>
-        <tr>
-          <th>#</th><th>Subject</th><th>Requested By</th><th>Status</th><th>Details</th><th>Actions</th>
-        </tr>
+        <tr>${buildTableHeader(columns, 'request')}</tr>
+        <tr>${buildFilterRow(columns, 'request')}</tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>`;
@@ -651,6 +829,7 @@ function bindForms() {
   });
 
   bindTableActions();
+  bindTableControls();
 
   document.getElementById('requestCreateForm').addEventListener('submit', handleRequestCreate);
   document.getElementById('requestUpdateForm').addEventListener('submit', handleRequestUpdate);
